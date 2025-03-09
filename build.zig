@@ -1,14 +1,23 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
+    const name = "peformat";
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const module = b.createModule(.{
+    const module = b.addModule(name, .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
     });
+
+    const check_compile = b.addLibrary(.{
+        .name = name,
+        .root_module = module,
+    });
+
+    const check_step = b.step("check", "Check the library");
+    check_step.dependOn(&check_compile.step);
 
     const test_compile = b.addTest(.{
         .root_module = module,
