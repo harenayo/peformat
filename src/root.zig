@@ -256,10 +256,10 @@ pub const OptionalHeader = union(enum) {
     @"64": std.coff.OptionalHeaderPE64,
 };
 
-pub const CLR = struct {
+pub const CLI = struct {
     cor20_header: Cor20Header,
 
-    fn read(bytes: []const u8) !CLR {
+    fn read(bytes: []const u8) !CLI {
         var stream = std.io.fixedBufferStream(bytes);
         const reader = stream.reader();
         var raw_cor20_header = try reader.readStruct(win32.system.diagnostics.debug.IMAGE_COR20_HEADER);
@@ -367,8 +367,8 @@ test {
     var pe = try PE.read(std.testing.allocator, pe_data);
     defer pe.free();
     std.debug.print("{}\n", .{pe});
-    const clr_data_location = pe.find_data(pe.data_directories[@intFromEnum(std.coff.DirectoryEntry.COM_DESCRIPTOR)].virtual_address) orelse return error.PeComDiscriptorNotFound;
-    const clr_data = pe_data[pe.section_headers.items[clr_data_location.section].pointer_to_raw_data + clr_data_location.offset ..];
-    const clr = try CLR.read(clr_data);
-    std.debug.print("{}\n", .{clr});
+    const cli_data_location = pe.find_data(pe.data_directories[@intFromEnum(std.coff.DirectoryEntry.COM_DESCRIPTOR)].virtual_address) orelse return error.PeComDiscriptorNotFound;
+    const cli_data = pe_data[pe.section_headers.items[cli_data_location.section].pointer_to_raw_data + cli_data_location.offset ..];
+    const cli = try CLI.read(cli_data);
+    std.debug.print("{}\n", .{cli});
 }
