@@ -359,6 +359,102 @@ pub const Cor20Header = struct {
     managed_native_header: std.coff.ImageDataDirectory,
 };
 
+pub const CLIMetadata = struct {
+    metadata_root: CLIMetadataRoot,
+
+    fn read(allocator: std.mem.Allocator, bytes: []const u8) !CLIMetadata {
+        var stream = std.io.fixedBufferStream(bytes);
+        const reader = stream.reader();
+
+        const raw_metadata_root_0 = try reader.readStructEndian(extern struct {
+            Signature: u32,
+            MajorVersion: u16,
+            MinorVersion: u16,
+            Reserved: u32,
+            Length: u32,
+        }, .little);
+
+        if (raw_metadata_root_0.Signature != 0x424A5342) return error.PeInvalidCliMetadataSignature;
+        var version = try std.ArrayList(u8).initCapacity(allocator, raw_metadata_root_0.Length - 1);
+        errdefer version.deinit();
+        try reader.streamUntilDelimiter(version.writer(), 0, raw_metadata_root_0.Length);
+        try stream.seekBy(raw_metadata_root_0.Length - @as(u32, @intCast(version.items.len)) - 1);
+
+        const raw_metadata_root_1 = try stream.reader().readStructEndian(extern struct {
+            Flags: u16,
+            Streams: u16,
+        }, .little);
+
+        var stream_headers = try std.ArrayList(CLIStreamHeader).initCapacity(allocator, raw_metadata_root_1.Streams);
+
+        errdefer {
+            for (stream_headers.items) |*stream_header| stream_header.name.deinit();
+            stream_headers.deinit();
+        }
+
+        for (0..raw_metadata_root_1.Streams) |_| {
+            const raw_stream_header_0 = try stream.reader().readStructEndian(extern struct {
+                Offset: u32,
+                Size: u32,
+            }, .little);
+
+            var name = std.ArrayList(u8).init(allocator);
+            errdefer name.deinit();
+            try stream.reader().streamUntilDelimiter(name.writer(), 0, null);
+            const padding = 4 - (name.items.len + 1) % 4;
+            if (padding != 4) try stream.seekBy(@intCast(padding));
+
+            const stream_header: CLIStreamHeader = .{
+                .offset = raw_stream_header_0.Offset,
+                .size = raw_stream_header_0.Size,
+                .name = name,
+            };
+
+            stream_headers.appendAssumeCapacity(stream_header);
+        }
+
+        const metadata_root: CLIMetadataRoot = .{
+            .signature = raw_metadata_root_0.Signature,
+            .major_version = raw_metadata_root_0.MajorVersion,
+            .minor_version = raw_metadata_root_0.MinorVersion,
+            .reserved = raw_metadata_root_0.Reserved,
+            .length = raw_metadata_root_0.Length,
+            .version = version,
+            .flags = raw_metadata_root_1.Flags,
+            .streams = raw_metadata_root_1.Streams,
+            .stream_headers = stream_headers,
+        };
+
+        return .{
+            .metadata_root = metadata_root,
+        };
+    }
+
+    fn free(metadata: *CLIMetadata) void {
+        metadata.metadata_root.version.deinit();
+        for (metadata.metadata_root.stream_headers.items) |*stream_header| stream_header.name.deinit();
+        metadata.metadata_root.stream_headers.deinit();
+    }
+};
+
+pub const CLIMetadataRoot = struct {
+    signature: u32,
+    major_version: u16,
+    minor_version: u16,
+    reserved: u32,
+    length: u32,
+    version: std.ArrayList(u8),
+    flags: u16,
+    streams: u16,
+    stream_headers: std.ArrayList(CLIStreamHeader),
+};
+
+pub const CLIStreamHeader = struct {
+    offset: u32,
+    size: u32,
+    name: std.ArrayList(u8),
+};
+
 test {
     const file = try std.fs.openFileAbsolute("C:\\Windows\\System32\\WinMetadata\\Windows.AI.winmd", .{});
     defer file.close();
@@ -367,8 +463,13 @@ test {
     var pe = try PE.read(std.testing.allocator, pe_data);
     defer pe.free();
     std.debug.print("{}\n", .{pe});
-    const cli_data_location = pe.find_data(pe.data_directories[@intFromEnum(std.coff.DirectoryEntry.COM_DESCRIPTOR)].virtual_address) orelse return error.PeComDiscriptorNotFound;
-    const cli_data = pe_data[pe.section_headers.items[cli_data_location.section].pointer_to_raw_data + cli_data_location.offset ..];
+    const cli_location = pe.find_data(pe.data_directories[@intFromEnum(std.coff.DirectoryEntry.COM_DESCRIPTOR)].virtual_address) orelse return error.PeComDiscriptorNotFound;
+    const cli_data = pe_data[pe.section_headers.items[cli_location.section].pointer_to_raw_data + cli_location.offset ..];
     const cli = try CLI.read(cli_data);
     std.debug.print("{}\n", .{cli});
+    const cli_metadata_location = pe.find_data(cli.cor20_header.metadata.virtual_address) orelse return error.PeCliMetadataNotFound;
+    const cli_metadata_data = pe_data[pe.section_headers.items[cli_metadata_location.section].pointer_to_raw_data + cli_metadata_location.offset ..];
+    var cli_metadata = try CLIMetadata.read(std.testing.allocator, cli_metadata_data);
+    defer cli_metadata.free();
+    std.debug.print("{}\n", cli_metadata);
 }
