@@ -1,7 +1,17 @@
 const std = @import("std");
 
-pub fn build(b: *std.Build) void {
-    const name = "peformat";
+pub fn build(b: *std.Build) !void {
+    var ast = try std.zig.Ast.parse(b.allocator, @embedFile("build.zig.zon"), .zon);
+    defer ast.deinit(b.allocator);
+    var zoir = try std.zig.ZonGen.generate(b.allocator, ast, .{ .parse_str_lits = false });
+    defer zoir.deinit(b.allocator);
+    const manifest = std.zig.Zoir.Node.Index.root.get(zoir).struct_literal;
+
+    const name = for (0.., manifest.names) |i, field| {
+        if (!std.mem.eql(u8, field.get(zoir), "name")) continue;
+        break manifest.vals.at(@intCast(i)).get(zoir).enum_literal.get(zoir);
+    } else unreachable;
+
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
