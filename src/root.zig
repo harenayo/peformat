@@ -2,7 +2,7 @@ const builtin = @import("builtin");
 const std = @import("std");
 const win32 = @import("win32");
 
-pub const PE = struct {
+pub const Pe = struct {
     dos_header: DosHeader,
     nt_signature: u32,
     coff_header: std.coff.CoffHeader,
@@ -10,7 +10,7 @@ pub const PE = struct {
     data_directories: [std.coff.IMAGE_NUMBEROF_DIRECTORY_ENTRIES]std.coff.ImageDataDirectory,
     section_headers: std.ArrayList(std.coff.SectionHeader),
 
-    fn read(allocator: std.mem.Allocator, bytes: []const u8) !PE {
+    fn read(allocator: std.mem.Allocator, bytes: []const u8) !Pe {
         var stream = std.io.fixedBufferStream(bytes);
         const reader = stream.reader();
         const raw_dos_header = try reader.readStructEndian(win32.system.system_services.IMAGE_DOS_HEADER, .little);
@@ -206,7 +206,7 @@ pub const PE = struct {
         };
     }
 
-    fn find_data(pe: *const PE, virtual_address: u32) ?struct {
+    fn find_data(pe: *const Pe, virtual_address: u32) ?struct {
         section: usize,
         offset: u32,
     } {
@@ -224,7 +224,7 @@ pub const PE = struct {
         return null;
     }
 
-    fn free(pe: *PE) void {
+    fn free(pe: *Pe) void {
         pe.section_headers.deinit();
     }
 };
@@ -256,10 +256,10 @@ pub const OptionalHeader = union(enum) {
     @"64": std.coff.OptionalHeaderPE64,
 };
 
-pub const CLI = struct {
+pub const Cli = struct {
     cor20_header: Cor20Header,
 
-    fn read(bytes: []const u8) !CLI {
+    fn read(bytes: []const u8) !Cli {
         var stream = std.io.fixedBufferStream(bytes);
         const reader = stream.reader();
         var raw_cor20_header = try reader.readStruct(win32.system.diagnostics.debug.IMAGE_COR20_HEADER);
@@ -359,10 +359,10 @@ pub const Cor20Header = struct {
     managed_native_header: std.coff.ImageDataDirectory,
 };
 
-pub const CLIMetadata = struct {
-    metadata_root: CLIMetadataRoot,
+pub const CliMetadata = struct {
+    metadata_root: CliMetadataRoot,
 
-    fn read(allocator: std.mem.Allocator, bytes: []const u8) !CLIMetadata {
+    fn read(allocator: std.mem.Allocator, bytes: []const u8) !CliMetadata {
         var stream = std.io.fixedBufferStream(bytes);
         const reader = stream.reader();
 
@@ -385,7 +385,7 @@ pub const CLIMetadata = struct {
             Streams: u16,
         }, .little);
 
-        var stream_headers = try std.ArrayList(CLIStreamHeader).initCapacity(allocator, raw_metadata_root_1.Streams);
+        var stream_headers = try std.ArrayList(CliStreamHeader).initCapacity(allocator, raw_metadata_root_1.Streams);
 
         errdefer {
             for (stream_headers.items) |*stream_header| stream_header.name.deinit();
@@ -404,7 +404,7 @@ pub const CLIMetadata = struct {
             const padding = 4 - (name.items.len + 1) % 4;
             if (padding != 4) try stream.seekBy(@intCast(padding));
 
-            const stream_header: CLIStreamHeader = .{
+            const stream_header: CliStreamHeader = .{
                 .offset = raw_stream_header_0.Offset,
                 .size = raw_stream_header_0.Size,
                 .name = name,
@@ -413,7 +413,7 @@ pub const CLIMetadata = struct {
             stream_headers.appendAssumeCapacity(stream_header);
         }
 
-        const metadata_root: CLIMetadataRoot = .{
+        const metadata_root: CliMetadataRoot = .{
             .signature = raw_metadata_root_0.Signature,
             .major_version = raw_metadata_root_0.MajorVersion,
             .minor_version = raw_metadata_root_0.MinorVersion,
@@ -430,14 +430,14 @@ pub const CLIMetadata = struct {
         };
     }
 
-    fn free(metadata: *CLIMetadata) void {
+    fn free(metadata: *CliMetadata) void {
         metadata.metadata_root.version.deinit();
         for (metadata.metadata_root.stream_headers.items) |*stream_header| stream_header.name.deinit();
         metadata.metadata_root.stream_headers.deinit();
     }
 };
 
-pub const CLIMetadataRoot = struct {
+pub const CliMetadataRoot = struct {
     signature: u32,
     major_version: u16,
     minor_version: u16,
@@ -446,10 +446,10 @@ pub const CLIMetadataRoot = struct {
     version: std.ArrayList(u8),
     flags: u16,
     streams: u16,
-    stream_headers: std.ArrayList(CLIStreamHeader),
+    stream_headers: std.ArrayList(CliStreamHeader),
 };
 
-pub const CLIStreamHeader = struct {
+pub const CliStreamHeader = struct {
     offset: u32,
     size: u32,
     name: std.ArrayList(u8),
@@ -460,16 +460,16 @@ test {
     defer file.close();
     const pe_data = try file.readToEndAlloc(std.testing.allocator, std.math.maxInt(usize));
     defer std.testing.allocator.free(pe_data);
-    var pe = try PE.read(std.testing.allocator, pe_data);
+    var pe = try Pe.read(std.testing.allocator, pe_data);
     defer pe.free();
     std.debug.print("{}\n", .{pe});
     const cli_location = pe.find_data(pe.data_directories[@intFromEnum(std.coff.DirectoryEntry.COM_DESCRIPTOR)].virtual_address) orelse return error.PeComDiscriptorNotFound;
     const cli_data = pe_data[pe.section_headers.items[cli_location.section].pointer_to_raw_data + cli_location.offset ..];
-    const cli = try CLI.read(cli_data);
+    const cli = try Cli.read(cli_data);
     std.debug.print("{}\n", .{cli});
     const cli_metadata_location = pe.find_data(cli.cor20_header.metadata.virtual_address) orelse return error.PeCliMetadataNotFound;
     const cli_metadata_data = pe_data[pe.section_headers.items[cli_metadata_location.section].pointer_to_raw_data + cli_metadata_location.offset ..];
-    var cli_metadata = try CLIMetadata.read(std.testing.allocator, cli_metadata_data);
+    var cli_metadata = try CliMetadata.read(std.testing.allocator, cli_metadata_data);
     defer cli_metadata.free();
     std.debug.print("{}\n", cli_metadata);
 }
