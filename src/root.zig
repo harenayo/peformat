@@ -155,8 +155,8 @@ pub const Pe = struct {
 
         var data_directories: [std.coff.IMAGE_NUMBEROF_DIRECTORY_ENTRIES]std.coff.ImageDataDirectory = undefined;
 
-        for (&data_directories, raw_data_directories) |*data_directory, raw_data_directory| {
-            data_directory.* = .{
+        for (&data_directories, raw_data_directories) |*data_directory_ptr, raw_data_directory| {
+            data_directory_ptr.* = .{
                 .virtual_address = raw_data_directory.VirtualAddress,
                 .size = raw_data_directory.Size,
             };
@@ -206,17 +206,21 @@ pub const Pe = struct {
         };
     }
 
-    fn find_data(pe: *const Pe, virtual_address: u32) ?struct {
-        section: usize,
+    fn data_directory(pe: Pe, entry: std.coff.DirectoryEntry) std.coff.ImageDataDirectory {
+        return pe.data_directories[@intFromEnum(entry)];
+    }
+
+    fn find_section(pe: Pe, virtual_address: u32) ?struct {
+        header: std.coff.SectionHeader,
         offset: u32,
     } {
-        for (0.., pe.section_headers.items) |i, *section_header| {
+        for (pe.section_headers.items) |section_header| {
             if (virtual_address < section_header.virtual_address) continue;
             const offset = virtual_address - section_header.virtual_address;
             if (offset >= section_header.size_of_raw_data) continue;
 
             return .{
-                .section = i,
+                .header = section_header,
                 .offset = virtual_address - section_header.virtual_address,
             };
         }
@@ -224,8 +228,12 @@ pub const Pe = struct {
         return null;
     }
 
-    fn free(pe: *Pe) void {
+    fn free(pe: Pe) void {
         pe.section_headers.deinit();
+    }
+
+    fn section_data(section: std.coff.SectionHeader, bytes: []const u8) []const u8 {
+        return bytes[section.pointer_to_raw_data..][0..section.size_of_raw_data];
     }
 };
 
@@ -388,7 +396,7 @@ pub const CliMetadata = struct {
         var stream_headers = try std.ArrayList(CliStreamHeader).initCapacity(allocator, raw_metadata_root_1.Streams);
 
         errdefer {
-            for (stream_headers.items) |*stream_header| stream_header.name.deinit();
+            for (stream_headers.items) |stream_header| stream_header.name.deinit();
             stream_headers.deinit();
         }
 
@@ -430,10 +438,37 @@ pub const CliMetadata = struct {
         };
     }
 
-    fn free(metadata: *CliMetadata) void {
+    fn find_stream(metadata: CliMetadata, kind: enum {
+        string,
+        us,
+        blob,
+        guid,
+        table,
+    }) ?usize {
+        const name = switch (kind) {
+            .string => "#Strings",
+            .us => "#US",
+            .blob => "#Blob",
+            .guid => "#GUID",
+            .table => "#~",
+        };
+
+        for (0.., metadata.metadata_root.stream_headers.items) |i, stream_header| {
+            if (!std.mem.eql(u8, stream_header.name.items, name)) continue;
+            return i;
+        }
+
+        return null;
+    }
+
+    fn free(metadata: CliMetadata) void {
         metadata.metadata_root.version.deinit();
-        for (metadata.metadata_root.stream_headers.items) |*stream_header| stream_header.name.deinit();
+        for (metadata.metadata_root.stream_headers.items) |stream_header| stream_header.name.deinit();
         metadata.metadata_root.stream_headers.deinit();
+    }
+
+    fn stream_data(stream: CliStreamHeader, bytes: []const u8) []const u8 {
+        return bytes[stream.offset..][0..stream.size];
     }
 };
 
@@ -460,16 +495,16 @@ test {
     defer file.close();
     const pe_data = try file.readToEndAlloc(std.testing.allocator, std.math.maxInt(usize));
     defer std.testing.allocator.free(pe_data);
-    var pe = try Pe.read(std.testing.allocator, pe_data);
+    const pe = try Pe.read(std.testing.allocator, pe_data);
     defer pe.free();
-    std.debug.print("{}\n", .{pe});
-    const cli_location = pe.find_data(pe.data_directories[@intFromEnum(std.coff.DirectoryEntry.COM_DESCRIPTOR)].virtual_address) orelse return error.PeComDiscriptorNotFound;
-    const cli_data = pe_data[pe.section_headers.items[cli_location.section].pointer_to_raw_data + cli_location.offset ..];
+    const cli_section = pe.find_section(pe.data_directory(std.coff.DirectoryEntry.COM_DESCRIPTOR).virtual_address) orelse return error.PeComDiscriptorNotFound;
+    const cli_data = Pe.section_data(cli_section.header, pe_data)[cli_section.offset..];
     const cli = try Cli.read(cli_data);
-    std.debug.print("{}\n", .{cli});
-    const cli_metadata_location = pe.find_data(cli.cor20_header.metadata.virtual_address) orelse return error.PeCliMetadataNotFound;
-    const cli_metadata_data = pe_data[pe.section_headers.items[cli_metadata_location.section].pointer_to_raw_data + cli_metadata_location.offset ..];
-    var cli_metadata = try CliMetadata.read(std.testing.allocator, cli_metadata_data);
-    defer cli_metadata.free();
-    std.debug.print("{}\n", cli_metadata);
+    const metadata_section = pe.find_section(cli.cor20_header.metadata.virtual_address) orelse return error.PeCliMetadataNotFound;
+    const metadata_data = Pe.section_data(metadata_section.header, pe_data)[metadata_section.offset..];
+    const metadata = try CliMetadata.read(std.testing.allocator, metadata_data);
+    defer metadata.free();
+    for (pe.section_headers.items) |section_header| std.debug.print("{?s}\n", .{section_header.getName()});
+    std.debug.print("{s}\n", .{metadata.metadata_root.version.items});
+    for (metadata.metadata_root.stream_headers.items) |stream_header| std.debug.print("{s}\n", .{stream_header.name.items});
 }
