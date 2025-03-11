@@ -11,7 +11,7 @@ pub const Heap = enum {
         .blob = 0x04,
     };
 
-    pub fn flag_bit(heap: Heap) u8 {
+    pub fn flagBit(heap: Heap) u8 {
         return @field(properties, @tagName(heap));
     }
 };
@@ -105,7 +105,7 @@ pub const Table = enum {
         return @field(properties, @tagName(table))[1];
     }
 
-    pub fn valid_bit(comptime table: Table) u64 {
+    pub fn validBit(comptime table: Table) u64 {
         return @as(u64, 1) << table.id();
     }
 
@@ -115,7 +115,7 @@ pub const Table = enum {
         var row_struct_fields: [table_columns.len]std.builtin.Type.StructField = undefined;
 
         for (&row_struct_fields, table_columns) |*row_struct_field, table_column| {
-            const RowFieldType = table_column.data_type().Type();
+            const RowFieldType = table_column.dataType().Type();
 
             row_struct_field.* = .{
                 .name = @tagName(table_column),
@@ -149,7 +149,7 @@ pub const ModuleColumn = enum {
         .enc_base_id = .{ .index = .{ .heap = .guid } },
     };
 
-    pub fn data_type(column: ModuleColumn) DataType {
+    pub fn dataType(column: ModuleColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -165,7 +165,7 @@ pub const TypeRefColumn = enum {
         .type_namespace = .{ .index = .{ .heap = .string } },
     };
 
-    pub fn data_type(column: TypeRefColumn) DataType {
+    pub fn dataType(column: TypeRefColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -187,7 +187,7 @@ pub const TypeDefColumn = enum {
         .method_list = .{ .index = .{ .table = .method_def } },
     };
 
-    pub fn data_type(column: TypeDefColumn) DataType {
+    pub fn dataType(column: TypeDefColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -203,7 +203,7 @@ pub const FieldColumn = enum {
         .signature = .{ .index = .{ .heap = .blob } },
     };
 
-    pub fn data_type(column: FieldColumn) DataType {
+    pub fn dataType(column: FieldColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -225,7 +225,7 @@ pub const MethodDefColumn = enum {
         .param_list = .{ .index = .{ .table = .param } },
     };
 
-    pub fn data_type(column: MethodDefColumn) DataType {
+    pub fn dataType(column: MethodDefColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -241,7 +241,7 @@ pub const ParamColumn = enum {
         .name = .{ .index = .{ .heap = .string } },
     };
 
-    pub fn data_type(column: ParamColumn) DataType {
+    pub fn dataType(column: ParamColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -255,7 +255,7 @@ pub const InterfaceImplColumn = enum {
         .interface = .{ .index = .{ .coded = .type_def_or_ref } },
     };
 
-    pub fn data_type(column: InterfaceImplColumn) DataType {
+    pub fn dataType(column: InterfaceImplColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -271,7 +271,7 @@ pub const MemberRefColumn = enum {
         .signature = .{ .index = .{ .heap = .blob } },
     };
 
-    pub fn data_type(column: MemberRefColumn) DataType {
+    pub fn dataType(column: MemberRefColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -287,7 +287,7 @@ pub const ConstantColumn = enum {
         .value = .{ .index = .{ .heap = .blob } },
     };
 
-    pub fn data_type(column: ConstantColumn) DataType {
+    pub fn dataType(column: ConstantColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -303,7 +303,7 @@ pub const CustomAttributeColumn = enum {
         .value = .{ .index = .{ .heap = .blob } },
     };
 
-    pub fn data_type(column: CustomAttributeColumn) DataType {
+    pub fn dataType(column: CustomAttributeColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -317,7 +317,7 @@ pub const FieldMarshalColumn = enum {
         .native_type = .{ .index = .{ .heap = .blob } },
     };
 
-    pub fn data_type(column: FieldMarshalColumn) DataType {
+    pub fn dataType(column: FieldMarshalColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -333,7 +333,7 @@ pub const DeclSecurityColumn = enum {
         .permission_set = .{ .index = .{ .heap = .blob } },
     };
 
-    pub fn data_type(column: DeclSecurityColumn) DataType {
+    pub fn dataType(column: DeclSecurityColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -349,7 +349,7 @@ pub const ClassLayoutColumn = enum {
         .parent = .{ .index = .{ .table = .type_def } },
     };
 
-    pub fn data_type(column: ClassLayoutColumn) DataType {
+    pub fn dataType(column: ClassLayoutColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -363,7 +363,7 @@ pub const FieldLayoutColumn = enum {
         .field = .{ .index = .{ .table = .field } },
     };
 
-    pub fn data_type(column: FieldLayoutColumn) DataType {
+    pub fn dataType(column: FieldLayoutColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -375,7 +375,7 @@ pub const StandAloneSigColumn = enum {
         .signature = .{ .index = .{ .heap = .blob } },
     };
 
-    pub fn data_type(column: StandAloneSigColumn) DataType {
+    pub fn dataType(column: StandAloneSigColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -389,7 +389,7 @@ pub const EventMapColumn = enum {
         .event_list = .{ .index = .{ .table = .event } },
     };
 
-    pub fn data_type(column: EventMapColumn) DataType {
+    pub fn dataType(column: EventMapColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -405,7 +405,7 @@ pub const EventColumn = enum {
         .event_type = .{ .index = .{ .coded = .type_def_or_ref } },
     };
 
-    pub fn data_type(column: EventColumn) DataType {
+    pub fn dataType(column: EventColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -419,7 +419,7 @@ pub const PropertyMapColumn = enum {
         .property_list = .{ .index = .{ .table = .property } },
     };
 
-    pub fn data_type(column: PropertyMapColumn) DataType {
+    pub fn dataType(column: PropertyMapColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -435,7 +435,7 @@ pub const PropertyColumn = enum {
         .type = .{ .index = .{ .heap = .blob } },
     };
 
-    pub fn data_type(column: PropertyColumn) DataType {
+    pub fn dataType(column: PropertyColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -451,7 +451,7 @@ pub const MethodSemanticsColumn = enum {
         .association = .{ .index = .{ .coded = .has_semantics } },
     };
 
-    pub fn data_type(column: MethodSemanticsColumn) DataType {
+    pub fn dataType(column: MethodSemanticsColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -467,7 +467,7 @@ pub const MethodImplColumn = enum {
         .method_declaration = .{ .index = .{ .coded = .method_def_or_ref } },
     };
 
-    pub fn data_type(column: MethodImplColumn) DataType {
+    pub fn dataType(column: MethodImplColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -479,7 +479,7 @@ pub const ModuleRefColumn = enum {
         .name = .{ .index = .{ .heap = .string } },
     };
 
-    pub fn data_type(column: ModuleRefColumn) DataType {
+    pub fn dataType(column: ModuleRefColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -491,7 +491,7 @@ pub const TypeSpecColumn = enum {
         .signature = .{ .index = .{ .heap = .blob } },
     };
 
-    pub fn data_type(column: TypeSpecColumn) DataType {
+    pub fn dataType(column: TypeSpecColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -509,7 +509,7 @@ pub const ImplMapColumn = enum {
         .import_scope = .{ .index = .{ .table = .module_ref } },
     };
 
-    pub fn data_type(column: ImplMapColumn) DataType {
+    pub fn dataType(column: ImplMapColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -523,7 +523,7 @@ pub const FieldRvaColumn = enum {
         .field = .{ .index = .{ .table = .field } },
     };
 
-    pub fn data_type(column: FieldRvaColumn) DataType {
+    pub fn dataType(column: FieldRvaColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -545,7 +545,7 @@ pub const AssemblyColumn = enum {
         .culture = .{ .index = .{ .heap = .string } },
     };
 
-    pub fn data_type(column: AssemblyColumn) DataType {
+    pub fn dataType(column: AssemblyColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -557,7 +557,7 @@ pub const AssemblyProcessorColumn = enum {
         .processor = .{ .int = 4 },
     };
 
-    pub fn data_type(column: AssemblyProcessorColumn) DataType {
+    pub fn dataType(column: AssemblyProcessorColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -573,7 +573,7 @@ pub const AssemblyOsColumn = enum {
         .os_minor_version = .{ .int = 4 },
     };
 
-    pub fn data_type(column: AssemblyOsColumn) DataType {
+    pub fn dataType(column: AssemblyOsColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -595,7 +595,7 @@ pub const AssemblyRefColumn = enum {
         .hash_value = .{ .index = .{ .heap = .blob } },
     };
 
-    pub fn data_type(column: AssemblyRefColumn) DataType {
+    pub fn dataType(column: AssemblyRefColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -609,7 +609,7 @@ pub const AssemblyRefProcessorColumn = enum {
         .assembly_ref = .{ .index = .{ .table = .assembly_ref } },
     };
 
-    pub fn data_type(column: AssemblyRefProcessorColumn) DataType {
+    pub fn dataType(column: AssemblyRefProcessorColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -627,7 +627,7 @@ pub const AssemblyRefOsColumn = enum {
         .assembly_ref = .{ .index = .{ .table = .assembly_ref } },
     };
 
-    pub fn data_type(column: AssemblyRefOsColumn) DataType {
+    pub fn dataType(column: AssemblyRefOsColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -643,7 +643,7 @@ pub const FileColumn = enum {
         .hash_value = .{ .index = .{ .heap = .blob } },
     };
 
-    pub fn data_type(column: FileColumn) DataType {
+    pub fn dataType(column: FileColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -663,7 +663,7 @@ pub const ExportedTypeColumn = enum {
         .implementation = .{ .index = .{ .coded = .implementation } },
     };
 
-    pub fn data_type(column: ExportedTypeColumn) DataType {
+    pub fn dataType(column: ExportedTypeColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -681,7 +681,7 @@ pub const ManifestResourceColumn = enum {
         .implementation = .{ .index = .{ .coded = .implementation } },
     };
 
-    pub fn data_type(column: ManifestResourceColumn) DataType {
+    pub fn dataType(column: ManifestResourceColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -695,7 +695,7 @@ pub const NestedClassColumn = enum {
         .enclosing_class = .{ .index = .{ .table = .type_def } },
     };
 
-    pub fn data_type(column: NestedClassColumn) DataType {
+    pub fn dataType(column: NestedClassColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -713,7 +713,7 @@ pub const GenericParamColumn = enum {
         .name = .{ .index = .{ .heap = .string } },
     };
 
-    pub fn data_type(column: GenericParamColumn) DataType {
+    pub fn dataType(column: GenericParamColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -727,7 +727,7 @@ pub const MethodSpecColumn = enum {
         .instantiation = .{ .index = .{ .heap = .blob } },
     };
 
-    pub fn data_type(column: MethodSpecColumn) DataType {
+    pub fn dataType(column: MethodSpecColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -741,7 +741,7 @@ pub const GenericParamConstraintColumn = enum {
         .constraint = .{ .index = .{ .coded = .type_def_or_ref } },
     };
 
-    pub fn data_type(column: GenericParamConstraintColumn) DataType {
+    pub fn dataType(column: GenericParamConstraintColumn) DataType {
         return @field(properties, @tagName(column));
     }
 };
@@ -847,7 +847,7 @@ pub const CodedIndex = enum {
         } },
     };
 
-    pub fn tag_bits(index: CodedIndex) u16 {
+    pub fn tagBits(index: CodedIndex) u16 {
         return @field(properties, @tagName(index))[0];
     }
 
@@ -856,7 +856,7 @@ pub const CodedIndex = enum {
     }
 
     pub fn Tag(index: CodedIndex) type {
-        const tag_enum_bits = index.tag_bits();
+        const tag_enum_bits = index.tagBits();
 
         const tag_type = @Type(.{ .int = .{
             .signedness = .unsigned,
@@ -955,7 +955,7 @@ pub const TableStream = struct {
         }
 
         inline for (table_tags) |table_tag| {
-            const valid_bit = table_tag.valid_bit();
+            const valid_bit = table_tag.validBit();
 
             if (valid_vector & valid_bit == 0) {
                 @field(tables, @tagName(table_tag)) = @FieldType(Tables, @tagName(table_tag)).init(allocator);
