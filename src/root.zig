@@ -1,6 +1,7 @@
 const builtin = @import("builtin");
 const std = @import("std");
 const win32 = @import("win32");
+pub const table_stream = @import("table_stream.zig");
 
 pub const Pe = struct {
     dos_header: DosHeader,
@@ -444,7 +445,7 @@ pub const CliMetadata = struct {
         blob,
         guid,
         table,
-    }) ?usize {
+    }) ?CliStreamHeader {
         const name = switch (kind) {
             .string => "#Strings",
             .us => "#US",
@@ -453,9 +454,9 @@ pub const CliMetadata = struct {
             .table => "#~",
         };
 
-        for (0.., metadata.metadata_root.stream_headers.items) |i, stream_header| {
+        for (metadata.metadata_root.stream_headers.items) |stream_header| {
             if (!std.mem.eql(u8, stream_header.name.items, name)) continue;
-            return i;
+            return stream_header;
         }
 
         return null;
@@ -504,7 +505,12 @@ test {
     const metadata_data = Pe.section_data(metadata_section.header, pe_data)[metadata_section.offset..];
     const metadata = try CliMetadata.read(std.testing.allocator, metadata_data);
     defer metadata.free();
+    const tables_header = metadata.find_stream(.table) orelse return error.PeTableStreamNotFound;
+    const tables_data = CliMetadata.stream_data(tables_header, metadata_data);
+    const tables = try table_stream.TableStream.read(std.testing.allocator, tables_data);
+    defer tables.free();
     for (pe.section_headers.items) |section_header| std.debug.print("{?s}\n", .{section_header.getName()});
     std.debug.print("{s}\n", .{metadata.metadata_root.version.items});
     for (metadata.metadata_root.stream_headers.items) |stream_header| std.debug.print("{s}\n", .{stream_header.name.items});
+    std.debug.print("{}\n", .{tables.tables});
 }
