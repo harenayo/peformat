@@ -105,10 +105,6 @@ pub const Table = enum {
         return @field(properties, @tagName(table))[1];
     }
 
-    pub fn validBit(comptime table: Table) u64 {
-        return @as(u64, 1) << table.number();
-    }
-
     pub fn Data(table: Table, column: table.Column()) type {
         return @field(table.Column().properties, @tagName(column));
     }
@@ -137,7 +133,7 @@ pub const Table = enum {
         } });
     }
 
-    pub fn readRow(comptime table: Table, stream: *std.io.FixedBufferStream([]const u8), sizes: IndexSizes) !table.Row() {
+    pub fn readRow(comptime table: Table, stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !table.Row() {
         var row: table.Row() = undefined;
 
         inline for (comptime std.meta.tags(table.Column())) |column| {
@@ -608,7 +604,7 @@ pub const GenericParamConstraintColumn = enum {
     };
 };
 
-pub const CodedIndex = enum {
+pub const CodedIndexKind = enum {
     type_def_or_ref,
     has_constant,
     has_custom_attribute,
@@ -623,7 +619,7 @@ pub const CodedIndex = enum {
     resolution_scope,
     type_or_method_def,
 
-    const properties: std.enums.EnumFieldStruct(CodedIndex, struct {
+    const properties: std.enums.EnumFieldStruct(CodedIndexKind, struct {
         u16,
         std.enums.EnumFieldStruct(Table, ?u5, @as(?u5, null)),
     }, null) = .{
@@ -709,15 +705,15 @@ pub const CodedIndex = enum {
         } },
     };
 
-    pub fn tagBits(comptime index: CodedIndex) u16 {
+    pub fn tagBits(comptime index: CodedIndexKind) u16 {
         return @field(properties, @tagName(index))[0];
     }
 
-    pub fn tagValues(comptime index: CodedIndex) std.enums.EnumFieldStruct(Table, ?u5, @as(?u5, null)) {
+    pub fn tagValues(comptime index: CodedIndexKind) std.enums.EnumFieldStruct(Table, ?u5, @as(?u5, null)) {
         return @field(properties, @tagName(index))[1];
     }
 
-    pub fn tables(comptime index: CodedIndex) []const Table {
+    pub fn tables(comptime index: CodedIndexKind) []const Table {
         const tag_values = comptime index.tagValues();
         comptime var result: []const Table = &.{};
 
@@ -732,7 +728,7 @@ pub const CodedIndex = enum {
         return result;
     }
 
-    pub fn Tag(comptime index: CodedIndex) type {
+    pub fn Tag(comptime index: CodedIndexKind) type {
         const Int = @Type(.{ .int = .{
             .signedness = .unsigned,
             .bits = index.tagBits(),
@@ -759,6 +755,28 @@ pub const CodedIndex = enum {
     }
 };
 
+pub const IndexKind = union(enum) {
+    heap: Heap,
+    table: Table,
+    coded: CodedIndexKind,
+};
+
+pub fn IndexMap(T: type) type {
+    return struct {
+        heap: std.enums.EnumFieldStruct(Heap, T, null),
+        table: std.enums.EnumFieldStruct(Table, T, null),
+        coded: std.enums.EnumFieldStruct(CodedIndexKind, T, null),
+
+        pub fn get(map: IndexMap(T), comptime index: IndexKind) T {
+            return switch (index) {
+                .heap => |heap| @field(map.heap, @tagName(heap)),
+                .table => |table| @field(map.table, @tagName(table)),
+                .coded => |coded_index| @field(map.coded, @tagName(coded_index)),
+            };
+        }
+    };
+}
+
 pub const IndexSize = enum {
     small,
     large,
@@ -769,12 +787,6 @@ pub const IndexSize = enum {
     }
 };
 
-pub const IndexSizes = struct {
-    heap: std.enums.EnumFieldStruct(Heap, IndexSize, null),
-    table: std.enums.EnumFieldStruct(Table, IndexSize, null),
-    coded: std.enums.EnumFieldStruct(CodedIndex, IndexSize, null),
-};
-
 pub fn IntData(bytes: u16) type {
     return struct {
         const Type = @Type(.{ .int = .{
@@ -782,29 +794,19 @@ pub fn IntData(bytes: u16) type {
             .bits = 8 * bytes,
         } });
 
-        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexSizes) !Type {
+        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
             _ = sizes;
             return try stream.reader().readInt(Type, .little);
         }
     };
 }
 
-pub fn IndexData(target: union(enum) {
-    heap: Heap,
-    table: Table,
-    coded: CodedIndex,
-}) type {
+pub fn IndexData(index: IndexKind) type {
     return struct {
         const Type = u32;
 
-        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexSizes) !Type {
-            const size = switch (target) {
-                .heap => |heap| @field(sizes.heap, @tagName(heap)),
-                .table => |table| @field(sizes.table, @tagName(table)),
-                .coded => |index| @field(sizes.coded, @tagName(index)),
-            };
-
-            return switch (size) {
+        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+            return switch (sizes.get(index)) {
                 .small => try IntData(2).read(stream, sizes),
                 .large => try IntData(4).read(stream, sizes),
             };
@@ -812,14 +814,14 @@ pub fn IndexData(target: union(enum) {
     };
 }
 
-pub fn CodedIndexData(target: CodedIndex) type {
+pub fn CodedIndexData(target: CodedIndexKind) type {
     return struct {
         const Type = struct {
             table: target.Tag(),
             index: u32,
         };
 
-        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexSizes) !Type {
+        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
             const raw_value = try IndexData(.{ .coded = target }).read(stream, sizes);
             var tag_mask: u32 = 0;
             for (0..target.tagBits()) |i| tag_mask |= @as(u32, 1) << @intCast(i);
@@ -838,10 +840,10 @@ pub const TableStream = struct {
     reserved0: u32,
     major_version: u8,
     minor_version: u8,
-    heap_sizes: u8,
+    heap_sizes: std.enums.EnumFieldStruct(Heap, IndexSize, null),
     reserved1: u8,
-    valid: u64,
-    sorted: u64,
+    valid: std.enums.EnumFieldStruct(Table, bool, null),
+    sorted: std.enums.EnumFieldStruct(Table, bool, null),
     rows: std.ArrayList(u32),
     tables: Tables,
 
@@ -859,37 +861,44 @@ pub const TableStream = struct {
             Sorted: u64,
         }, .little);
 
-        var valid_vector = raw_table_stream_0.Valid;
-        var rows = try std.ArrayList(u32).initCapacity(allocator, @popCount(raw_table_stream_0.Valid));
-        errdefer rows.deinit();
-        var row_counts: std.enums.EnumFieldStruct(Table, u32, 0) = .{};
-
-        inline for (comptime std.meta.tags(Table)) |table| {
-            const valid_bit = table.validBit();
-
-            if (valid_vector & valid_bit != 0) {
-                valid_vector &= ~valid_bit;
-                const table_row_count = try reader.readInt(u32, .little);
-                rows.appendAssumeCapacity(table_row_count);
-                @field(row_counts, @tagName(table)) = table_row_count;
-            }
-        }
-
-        if (valid_vector != 0) return error.PeInvalidTableValidVector;
-        var index_sizes: IndexSizes = undefined;
+        var heap_sizes: std.enums.EnumFieldStruct(Heap, IndexSize, null) = undefined;
 
         inline for (comptime std.meta.tags(Heap)) |heap| {
-            @field(index_sizes.heap, @tagName(heap)) = switch (heap.flagBit() & raw_table_stream_0.HeapSizes) {
+            @field(heap_sizes, @tagName(heap)) = switch (raw_table_stream_0.HeapSizes & heap.flagBit()) {
                 0 => .small,
                 else => .large,
             };
         }
 
+        var valid: std.enums.EnumFieldStruct(Table, bool, null) = undefined;
+        var sorted: std.enums.EnumFieldStruct(Table, bool, null) = undefined;
+        var rows = try std.ArrayList(u32).initCapacity(allocator, @popCount(raw_table_stream_0.Valid));
+        errdefer rows.deinit();
+        var row_counts: std.enums.EnumFieldStruct(Table, u32, null) = undefined;
+
+        inline for (comptime std.meta.tags(Table)) |table| {
+            const table_bit = @as(u64, 1) << table.number();
+            @field(valid, @tagName(table)) = raw_table_stream_0.Valid & table_bit != 0;
+            @field(sorted, @tagName(table)) = raw_table_stream_0.Sorted & table_bit != 0;
+
+            @field(row_counts, @tagName(table)) = blk: switch (@field(valid, @tagName(table))) {
+                true => {
+                    const row_count = try reader.readInt(u32, .little);
+                    rows.appendAssumeCapacity(row_count);
+                    break :blk row_count;
+                },
+                false => 0,
+            };
+        }
+
+        var index_sizes: IndexMap(IndexSize) = undefined;
+        index_sizes.heap = heap_sizes;
+
         inline for (comptime std.meta.tags(Table)) |table| {
             @field(index_sizes.table, @tagName(table)) = .calcFromRowCounts(0, &.{@field(row_counts, @tagName(table))});
         }
 
-        inline for (comptime std.meta.tags(CodedIndex)) |index| {
+        inline for (comptime std.meta.tags(CodedIndexKind)) |index| {
             const tag_bits = index.tagBits();
             const coded_tables = comptime index.tables();
             var coded_row_counts: [coded_tables.len]u32 = undefined;
@@ -927,10 +936,10 @@ pub const TableStream = struct {
             .reserved0 = raw_table_stream_0.Reserved0,
             .major_version = raw_table_stream_0.MajorVersion,
             .minor_version = raw_table_stream_0.MinorVersion,
-            .heap_sizes = raw_table_stream_0.HeapSizes,
+            .heap_sizes = heap_sizes,
             .reserved1 = raw_table_stream_0.Reserved1,
-            .valid = raw_table_stream_0.Valid,
-            .sorted = raw_table_stream_0.Sorted,
+            .valid = valid,
+            .sorted = sorted,
             .rows = rows,
             .tables = tables,
         };
