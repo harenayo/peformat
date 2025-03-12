@@ -109,7 +109,7 @@ pub const Table = enum {
         return @as(u64, 1) << table.number();
     }
 
-    pub fn ColumnType(table: Table, column: table.Column()) type {
+    pub fn Data(table: Table, column: table.Column()) type {
         return @field(table.Column().properties, @tagName(column));
     }
 
@@ -118,7 +118,7 @@ pub const Table = enum {
         var row_fields: [columns.len]std.builtin.Type.StructField = undefined;
 
         for (&row_fields, columns) |*row_field, column| {
-            const Type = table.ColumnType(column);
+            const Type = table.Data(column).Type;
 
             row_field.* = .{
                 .name = @tagName(column),
@@ -140,8 +140,8 @@ pub const Table = enum {
     pub fn readRow(comptime table: Table, stream: *std.io.FixedBufferStream([]const u8), sizes: IndexSizes) !table.Row() {
         var row: table.Row() = undefined;
 
-        inline for (std.meta.fields(table.Row())) |row_field| {
-            @field(row, row_field.name) = try row_field.type.read(stream, sizes);
+        inline for (comptime std.meta.tags(table.Column())) |column| {
+            @field(row, @tagName(column)) = try table.Data(column).read(stream, sizes);
         }
 
         return row;
@@ -156,11 +156,11 @@ pub const ModuleColumn = enum {
     enc_base_id,
 
     const properties: std.enums.EnumFieldStruct(ModuleColumn, type, null) = .{
-        .generation = IntType(2),
-        .name = IndexType(.{ .heap = .string }),
-        .mvid = IndexType(.{ .heap = .guid }),
-        .enc_id = IndexType(.{ .heap = .guid }),
-        .enc_base_id = IndexType(.{ .heap = .guid }),
+        .generation = IntData(2),
+        .name = IndexData(.{ .heap = .string }),
+        .mvid = IndexData(.{ .heap = .guid }),
+        .enc_id = IndexData(.{ .heap = .guid }),
+        .enc_base_id = IndexData(.{ .heap = .guid }),
     };
 };
 
@@ -170,9 +170,9 @@ pub const TypeRefColumn = enum {
     type_namespace,
 
     const properties: std.enums.EnumFieldStruct(TypeRefColumn, type, null) = .{
-        .resolution_scope = CodedIndexType(.resolution_scope),
-        .type_name = IndexType(.{ .heap = .string }),
-        .type_namespace = IndexType(.{ .heap = .string }),
+        .resolution_scope = CodedIndexData(.resolution_scope),
+        .type_name = IndexData(.{ .heap = .string }),
+        .type_namespace = IndexData(.{ .heap = .string }),
     };
 };
 
@@ -185,12 +185,12 @@ pub const TypeDefColumn = enum {
     method_list,
 
     const properties: std.enums.EnumFieldStruct(TypeDefColumn, type, null) = .{
-        .flags = IntType(4),
-        .type_name = IndexType(.{ .heap = .string }),
-        .type_namespace = IndexType(.{ .heap = .string }),
-        .extends = CodedIndexType(.type_def_or_ref),
-        .field_list = IndexType(.{ .table = .field }),
-        .method_list = IndexType(.{ .table = .method_def }),
+        .flags = IntData(4),
+        .type_name = IndexData(.{ .heap = .string }),
+        .type_namespace = IndexData(.{ .heap = .string }),
+        .extends = CodedIndexData(.type_def_or_ref),
+        .field_list = IndexData(.{ .table = .field }),
+        .method_list = IndexData(.{ .table = .method_def }),
     };
 };
 
@@ -200,9 +200,9 @@ pub const FieldColumn = enum {
     signature,
 
     const properties: std.enums.EnumFieldStruct(FieldColumn, type, null) = .{
-        .flags = IntType(2),
-        .name = IndexType(.{ .heap = .string }),
-        .signature = IndexType(.{ .heap = .blob }),
+        .flags = IntData(2),
+        .name = IndexData(.{ .heap = .string }),
+        .signature = IndexData(.{ .heap = .blob }),
     };
 };
 
@@ -215,12 +215,12 @@ pub const MethodDefColumn = enum {
     param_list,
 
     const properties: std.enums.EnumFieldStruct(MethodDefColumn, type, null) = .{
-        .rva = IntType(4),
-        .impl_flags = IntType(2),
-        .flags = IntType(2),
-        .name = IndexType(.{ .heap = .string }),
-        .signature = IndexType(.{ .heap = .blob }),
-        .param_list = IndexType(.{ .table = .param }),
+        .rva = IntData(4),
+        .impl_flags = IntData(2),
+        .flags = IntData(2),
+        .name = IndexData(.{ .heap = .string }),
+        .signature = IndexData(.{ .heap = .blob }),
+        .param_list = IndexData(.{ .table = .param }),
     };
 };
 
@@ -230,9 +230,9 @@ pub const ParamColumn = enum {
     name,
 
     const properties: std.enums.EnumFieldStruct(ParamColumn, type, null) = .{
-        .flags = IntType(2),
-        .sequence = IntType(2),
-        .name = IndexType(.{ .heap = .string }),
+        .flags = IntData(2),
+        .sequence = IntData(2),
+        .name = IndexData(.{ .heap = .string }),
     };
 };
 
@@ -241,8 +241,8 @@ pub const InterfaceImplColumn = enum {
     interface,
 
     const properties: std.enums.EnumFieldStruct(InterfaceImplColumn, type, null) = .{
-        .class = IndexType(.{ .table = .type_def }),
-        .interface = CodedIndexType(.type_def_or_ref),
+        .class = IndexData(.{ .table = .type_def }),
+        .interface = CodedIndexData(.type_def_or_ref),
     };
 };
 
@@ -252,9 +252,9 @@ pub const MemberRefColumn = enum {
     signature,
 
     const properties: std.enums.EnumFieldStruct(MemberRefColumn, type, null) = .{
-        .class = CodedIndexType(.member_ref_parent),
-        .name = IndexType(.{ .heap = .string }),
-        .signature = IndexType(.{ .heap = .blob }),
+        .class = CodedIndexData(.member_ref_parent),
+        .name = IndexData(.{ .heap = .string }),
+        .signature = IndexData(.{ .heap = .blob }),
     };
 };
 
@@ -264,9 +264,9 @@ pub const ConstantColumn = enum {
     value,
 
     const properties: std.enums.EnumFieldStruct(ConstantColumn, type, null) = .{
-        .type = IntType(2),
-        .parent = CodedIndexType(.has_constant),
-        .value = IndexType(.{ .heap = .blob }),
+        .type = IntData(2),
+        .parent = CodedIndexData(.has_constant),
+        .value = IndexData(.{ .heap = .blob }),
     };
 };
 
@@ -276,9 +276,9 @@ pub const CustomAttributeColumn = enum {
     value,
 
     const properties: std.enums.EnumFieldStruct(CustomAttributeColumn, type, null) = .{
-        .parent = CodedIndexType(.has_custom_attribute),
-        .type = CodedIndexType(.custom_attribute_type),
-        .value = IndexType(.{ .heap = .blob }),
+        .parent = CodedIndexData(.has_custom_attribute),
+        .type = CodedIndexData(.custom_attribute_type),
+        .value = IndexData(.{ .heap = .blob }),
     };
 };
 
@@ -287,8 +287,8 @@ pub const FieldMarshalColumn = enum {
     native_type,
 
     const properties: std.enums.EnumFieldStruct(FieldMarshalColumn, type, null) = .{
-        .parent = CodedIndexType(.has_field_marshal),
-        .native_type = IndexType(.{ .heap = .blob }),
+        .parent = CodedIndexData(.has_field_marshal),
+        .native_type = IndexData(.{ .heap = .blob }),
     };
 };
 
@@ -298,9 +298,9 @@ pub const DeclSecurityColumn = enum {
     permission_set,
 
     const properties: std.enums.EnumFieldStruct(DeclSecurityColumn, type, null) = .{
-        .action = IntType(2),
-        .parent = CodedIndexType(.has_decl_security),
-        .permission_set = IndexType(.{ .heap = .blob }),
+        .action = IntData(2),
+        .parent = CodedIndexData(.has_decl_security),
+        .permission_set = IndexData(.{ .heap = .blob }),
     };
 };
 
@@ -310,9 +310,9 @@ pub const ClassLayoutColumn = enum {
     parent,
 
     const properties: std.enums.EnumFieldStruct(ClassLayoutColumn, type, null) = .{
-        .packing_size = IntType(2),
-        .class_size = IntType(4),
-        .parent = IndexType(.{ .table = .type_def }),
+        .packing_size = IntData(2),
+        .class_size = IntData(4),
+        .parent = IndexData(.{ .table = .type_def }),
     };
 };
 
@@ -321,8 +321,8 @@ pub const FieldLayoutColumn = enum {
     field,
 
     const properties: std.enums.EnumFieldStruct(FieldLayoutColumn, type, null) = .{
-        .offset = IntType(4),
-        .field = IndexType(.{ .table = .field }),
+        .offset = IntData(4),
+        .field = IndexData(.{ .table = .field }),
     };
 };
 
@@ -330,7 +330,7 @@ pub const StandAloneSigColumn = enum {
     signature,
 
     const properties: std.enums.EnumFieldStruct(StandAloneSigColumn, type, null) = .{
-        .signature = IndexType(.{ .heap = .blob }),
+        .signature = IndexData(.{ .heap = .blob }),
     };
 };
 
@@ -339,8 +339,8 @@ pub const EventMapColumn = enum {
     event_list,
 
     const properties: std.enums.EnumFieldStruct(EventMapColumn, type, null) = .{
-        .parent = IndexType(.{ .table = .type_def }),
-        .event_list = IndexType(.{ .table = .event }),
+        .parent = IndexData(.{ .table = .type_def }),
+        .event_list = IndexData(.{ .table = .event }),
     };
 };
 
@@ -350,9 +350,9 @@ pub const EventColumn = enum {
     event_type,
 
     const properties: std.enums.EnumFieldStruct(EventColumn, type, null) = .{
-        .event_flags = IntType(2),
-        .name = IndexType(.{ .heap = .string }),
-        .event_type = CodedIndexType(.type_def_or_ref),
+        .event_flags = IntData(2),
+        .name = IndexData(.{ .heap = .string }),
+        .event_type = CodedIndexData(.type_def_or_ref),
     };
 };
 
@@ -361,8 +361,8 @@ pub const PropertyMapColumn = enum {
     property_list,
 
     const properties: std.enums.EnumFieldStruct(PropertyMapColumn, type, null) = .{
-        .parent = IndexType(.{ .table = .type_def }),
-        .property_list = IndexType(.{ .table = .property }),
+        .parent = IndexData(.{ .table = .type_def }),
+        .property_list = IndexData(.{ .table = .property }),
     };
 };
 
@@ -372,9 +372,9 @@ pub const PropertyColumn = enum {
     type,
 
     const properties: std.enums.EnumFieldStruct(PropertyColumn, type, null) = .{
-        .flags = IntType(2),
-        .name = IndexType(.{ .heap = .string }),
-        .type = IndexType(.{ .heap = .blob }),
+        .flags = IntData(2),
+        .name = IndexData(.{ .heap = .string }),
+        .type = IndexData(.{ .heap = .blob }),
     };
 };
 
@@ -384,9 +384,9 @@ pub const MethodSemanticsColumn = enum {
     association,
 
     const properties: std.enums.EnumFieldStruct(MethodSemanticsColumn, type, null) = .{
-        .semantics = IntType(2),
-        .method = IndexType(.{ .table = .method_def }),
-        .association = CodedIndexType(.has_semantics),
+        .semantics = IntData(2),
+        .method = IndexData(.{ .table = .method_def }),
+        .association = CodedIndexData(.has_semantics),
     };
 };
 
@@ -396,9 +396,9 @@ pub const MethodImplColumn = enum {
     method_declaration,
 
     const properties: std.enums.EnumFieldStruct(MethodImplColumn, type, null) = .{
-        .class = IndexType(.{ .table = .type_def }),
-        .method_body = CodedIndexType(.method_def_or_ref),
-        .method_declaration = CodedIndexType(.method_def_or_ref),
+        .class = IndexData(.{ .table = .type_def }),
+        .method_body = CodedIndexData(.method_def_or_ref),
+        .method_declaration = CodedIndexData(.method_def_or_ref),
     };
 };
 
@@ -406,7 +406,7 @@ pub const ModuleRefColumn = enum {
     name,
 
     const properties: std.enums.EnumFieldStruct(ModuleRefColumn, type, null) = .{
-        .name = IndexType(.{ .heap = .string }),
+        .name = IndexData(.{ .heap = .string }),
     };
 };
 
@@ -414,7 +414,7 @@ pub const TypeSpecColumn = enum {
     signature,
 
     const properties: std.enums.EnumFieldStruct(TypeSpecColumn, type, null) = .{
-        .signature = IndexType(.{ .heap = .blob }),
+        .signature = IndexData(.{ .heap = .blob }),
     };
 };
 
@@ -425,10 +425,10 @@ pub const ImplMapColumn = enum {
     import_scope,
 
     const properties: std.enums.EnumFieldStruct(ImplMapColumn, type, null) = .{
-        .mapping_flags = IntType(2),
-        .member_forwarded = CodedIndexType(.member_forwarded),
-        .import_name = IndexType(.{ .heap = .string }),
-        .import_scope = IndexType(.{ .table = .module_ref }),
+        .mapping_flags = IntData(2),
+        .member_forwarded = CodedIndexData(.member_forwarded),
+        .import_name = IndexData(.{ .heap = .string }),
+        .import_scope = IndexData(.{ .table = .module_ref }),
     };
 };
 
@@ -437,8 +437,8 @@ pub const FieldRvaColumn = enum {
     field,
 
     const properties: std.enums.EnumFieldStruct(FieldRvaColumn, type, null) = .{
-        .rva = IntType(4),
-        .field = IndexType(.{ .table = .field }),
+        .rva = IntData(4),
+        .field = IndexData(.{ .table = .field }),
     };
 };
 
@@ -451,12 +451,12 @@ pub const AssemblyColumn = enum {
     culture,
 
     const properties: std.enums.EnumFieldStruct(AssemblyColumn, type, null) = .{
-        .hash_alg_id = IntType(4),
-        .versions = IntType(8),
-        .flags = IntType(4),
-        .public_key = IndexType(.{ .heap = .blob }),
-        .name = IndexType(.{ .heap = .string }),
-        .culture = IndexType(.{ .heap = .string }),
+        .hash_alg_id = IntData(4),
+        .versions = IntData(8),
+        .flags = IntData(4),
+        .public_key = IndexData(.{ .heap = .blob }),
+        .name = IndexData(.{ .heap = .string }),
+        .culture = IndexData(.{ .heap = .string }),
     };
 };
 
@@ -464,7 +464,7 @@ pub const AssemblyProcessorColumn = enum {
     processor,
 
     const properties: std.enums.EnumFieldStruct(AssemblyProcessorColumn, type, null) = .{
-        .processor = IntType(4),
+        .processor = IntData(4),
     };
 };
 
@@ -474,9 +474,9 @@ pub const AssemblyOsColumn = enum {
     os_minor_version,
 
     const properties: std.enums.EnumFieldStruct(AssemblyOsColumn, type, null) = .{
-        .os_platform_id = IntType(4),
-        .os_major_version = IntType(4),
-        .os_minor_version = IntType(4),
+        .os_platform_id = IntData(4),
+        .os_major_version = IntData(4),
+        .os_minor_version = IntData(4),
     };
 };
 
@@ -489,12 +489,12 @@ pub const AssemblyRefColumn = enum {
     hash_value,
 
     const properties: std.enums.EnumFieldStruct(AssemblyRefColumn, type, null) = .{
-        .versions = IntType(8),
-        .flags = IntType(4),
-        .public_key_or_token = IndexType(.{ .heap = .blob }),
-        .name = IndexType(.{ .heap = .string }),
-        .culture = IndexType(.{ .heap = .string }),
-        .hash_value = IndexType(.{ .heap = .blob }),
+        .versions = IntData(8),
+        .flags = IntData(4),
+        .public_key_or_token = IndexData(.{ .heap = .blob }),
+        .name = IndexData(.{ .heap = .string }),
+        .culture = IndexData(.{ .heap = .string }),
+        .hash_value = IndexData(.{ .heap = .blob }),
     };
 };
 
@@ -503,8 +503,8 @@ pub const AssemblyRefProcessorColumn = enum {
     assembly_ref,
 
     const properties: std.enums.EnumFieldStruct(AssemblyRefProcessorColumn, type, null) = .{
-        .processor = IntType(4),
-        .assembly_ref = IndexType(.{ .table = .assembly_ref }),
+        .processor = IntData(4),
+        .assembly_ref = IndexData(.{ .table = .assembly_ref }),
     };
 };
 
@@ -515,10 +515,10 @@ pub const AssemblyRefOsColumn = enum {
     assembly_ref,
 
     const properties: std.enums.EnumFieldStruct(AssemblyRefOsColumn, type, null) = .{
-        .os_platform_id = IntType(4),
-        .os_major_version = IntType(4),
-        .os_minor_version = IntType(4),
-        .assembly_ref = IndexType(.{ .table = .assembly_ref }),
+        .os_platform_id = IntData(4),
+        .os_major_version = IntData(4),
+        .os_minor_version = IntData(4),
+        .assembly_ref = IndexData(.{ .table = .assembly_ref }),
     };
 };
 
@@ -528,9 +528,9 @@ pub const FileColumn = enum {
     hash_value,
 
     const properties: std.enums.EnumFieldStruct(FileColumn, type, null) = .{
-        .flags = IntType(4),
-        .name = IndexType(.{ .heap = .string }),
-        .hash_value = IndexType(.{ .heap = .blob }),
+        .flags = IntData(4),
+        .name = IndexData(.{ .heap = .string }),
+        .hash_value = IndexData(.{ .heap = .blob }),
     };
 };
 
@@ -542,11 +542,11 @@ pub const ExportedTypeColumn = enum {
     implementation,
 
     const properties: std.enums.EnumFieldStruct(ExportedTypeColumn, type, null) = .{
-        .flags = IntType(4),
-        .type_def_id = IntType(4),
-        .type_name = IndexType(.{ .heap = .string }),
-        .type_namespace = IndexType(.{ .heap = .string }),
-        .implementation = CodedIndexType(.implementation),
+        .flags = IntData(4),
+        .type_def_id = IntData(4),
+        .type_name = IndexData(.{ .heap = .string }),
+        .type_namespace = IndexData(.{ .heap = .string }),
+        .implementation = CodedIndexData(.implementation),
     };
 };
 
@@ -557,10 +557,10 @@ pub const ManifestResourceColumn = enum {
     implementation,
 
     const properties: std.enums.EnumFieldStruct(ManifestResourceColumn, type, null) = .{
-        .offset = IntType(4),
-        .flags = IntType(4),
-        .name = IndexType(.{ .heap = .string }),
-        .implementation = CodedIndexType(.implementation),
+        .offset = IntData(4),
+        .flags = IntData(4),
+        .name = IndexData(.{ .heap = .string }),
+        .implementation = CodedIndexData(.implementation),
     };
 };
 
@@ -569,8 +569,8 @@ pub const NestedClassColumn = enum {
     enclosing_class,
 
     const properties: std.enums.EnumFieldStruct(NestedClassColumn, type, null) = .{
-        .nested_class = IndexType(.{ .table = .type_def }),
-        .enclosing_class = IndexType(.{ .table = .type_def }),
+        .nested_class = IndexData(.{ .table = .type_def }),
+        .enclosing_class = IndexData(.{ .table = .type_def }),
     };
 };
 
@@ -581,10 +581,10 @@ pub const GenericParamColumn = enum {
     name,
 
     const properties: std.enums.EnumFieldStruct(GenericParamColumn, type, null) = .{
-        .number = IntType(2),
-        .flags = IntType(2),
-        .owner = CodedIndexType(.type_or_method_def),
-        .name = IndexType(.{ .heap = .string }),
+        .number = IntData(2),
+        .flags = IntData(2),
+        .owner = CodedIndexData(.type_or_method_def),
+        .name = IndexData(.{ .heap = .string }),
     };
 };
 
@@ -593,8 +593,8 @@ pub const MethodSpecColumn = enum {
     instantiation,
 
     const properties: std.enums.EnumFieldStruct(MethodSpecColumn, type, null) = .{
-        .method = CodedIndexType(.method_def_or_ref),
-        .instantiation = IndexType(.{ .heap = .blob }),
+        .method = CodedIndexData(.method_def_or_ref),
+        .instantiation = IndexData(.{ .heap = .blob }),
     };
 };
 
@@ -603,8 +603,8 @@ pub const GenericParamConstraintColumn = enum {
     constraint,
 
     const properties: std.enums.EnumFieldStruct(GenericParamConstraintColumn, type, null) = .{
-        .owner = IndexType(.{ .table = .generic_param }),
-        .constraint = CodedIndexType(.type_def_or_ref),
+        .owner = IndexData(.{ .table = .generic_param }),
+        .constraint = CodedIndexData(.type_def_or_ref),
     };
 };
 
@@ -775,63 +775,60 @@ pub const IndexSizes = struct {
     coded: std.enums.EnumFieldStruct(CodedIndex, IndexSize, null),
 };
 
-pub fn IntType(bytes: u16) type {
-    const Int = @Type(.{ .int = .{
-        .signedness = .unsigned,
-        .bits = 8 * bytes,
-    } });
-
+pub fn IntData(bytes: u16) type {
     return struct {
-        value: Int,
+        const Type = @Type(.{ .int = .{
+            .signedness = .unsigned,
+            .bits = 8 * bytes,
+        } });
 
-        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexSizes) !IntType(bytes) {
+        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexSizes) !Type {
             _ = sizes;
-            const value = try stream.reader().readInt(Int, .little);
-            return .{ .value = value };
+            return try stream.reader().readInt(Type, .little);
         }
     };
 }
 
-pub fn IndexType(target: union(enum) {
+pub fn IndexData(target: union(enum) {
     heap: Heap,
     table: Table,
     coded: CodedIndex,
 }) type {
     return struct {
-        value: u32,
+        const Type = u32;
 
-        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexSizes) !IndexType(target) {
+        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexSizes) !Type {
             const size = switch (target) {
                 .heap => |heap| @field(sizes.heap, @tagName(heap)),
                 .table => |table| @field(sizes.table, @tagName(table)),
                 .coded => |index| @field(sizes.coded, @tagName(index)),
             };
 
-            const value = switch (size) {
-                .small => (try IntType(2).read(stream, sizes)).value,
-                .large => (try IntType(4).read(stream, sizes)).value,
+            return switch (size) {
+                .small => try IntData(2).read(stream, sizes),
+                .large => try IntData(4).read(stream, sizes),
             };
-
-            return .{ .value = value };
         }
     };
 }
 
-pub fn CodedIndexType(target: CodedIndex) type {
+pub fn CodedIndexData(target: CodedIndex) type {
     return struct {
-        tag: target.Tag(),
-        value: u32,
+        const Type = struct {
+            table: target.Tag(),
+            index: u32,
+        };
 
-        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexSizes) !CodedIndexType(target) {
-            const raw_value = (try IndexType(.{ .coded = target }).read(stream, sizes)).value;
+        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexSizes) !Type {
+            const raw_value = try IndexData(.{ .coded = target }).read(stream, sizes);
             var tag_mask: u32 = 0;
             for (0..target.tagBits()) |i| tag_mask |= @as(u32, 1) << @intCast(i);
-            const tag = try std.meta.intToEnum(target.Tag(), raw_value & tag_mask);
-            const value = raw_value >> @intCast(target.tagBits());
+            const table = try std.meta.intToEnum(target.Tag(), raw_value & tag_mask);
+            const index = raw_value >> @intCast(target.tagBits());
 
             return .{
-                .tag = tag,
-                .value = value,
+                .table = table,
+                .index = index,
             };
         }
     };
