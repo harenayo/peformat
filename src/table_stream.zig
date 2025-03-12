@@ -113,13 +113,17 @@ pub const Table = enum {
         const table_columns = std.enums.values(table.Column());
         var row_struct_fields: [table_columns.len]std.builtin.Type.StructField = undefined;
 
-        for (&row_struct_fields, table_columns) |*row_struct_field, table_column| row_struct_field.* = .{
-            .name = @tagName(table_column),
-            .type = table_column.Type(),
-            .default_value_ptr = null,
-            .is_comptime = false,
-            .alignment = @alignOf(table_column.Type()),
-        };
+        for (&row_struct_fields, table_columns) |*row_struct_field, table_column| {
+            const DataType = @field(table.Column().properties, @tagName(table_column));
+
+            row_struct_field.* = .{
+                .name = @tagName(table_column),
+                .type = DataType,
+                .default_value_ptr = null,
+                .is_comptime = false,
+                .alignment = @alignOf(DataType),
+            };
+        }
 
         return @Type(.{ .@"struct" = .{
             .layout = .auto,
@@ -151,10 +155,6 @@ pub const ModuleColumn = enum {
         .enc_id = IndexType(.{ .heap = .guid }),
         .enc_base_id = IndexType(.{ .heap = .guid }),
     };
-
-    pub fn Type(column: ModuleColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const TypeRefColumn = enum {
@@ -167,10 +167,6 @@ pub const TypeRefColumn = enum {
         .type_name = IndexType(.{ .heap = .string }),
         .type_namespace = IndexType(.{ .heap = .string }),
     };
-
-    pub fn Type(column: TypeRefColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const TypeDefColumn = enum {
@@ -189,10 +185,6 @@ pub const TypeDefColumn = enum {
         .field_list = IndexType(.{ .table = .field }),
         .method_list = IndexType(.{ .table = .method_def }),
     };
-
-    pub fn Type(column: TypeDefColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const FieldColumn = enum {
@@ -205,10 +197,6 @@ pub const FieldColumn = enum {
         .name = IndexType(.{ .heap = .string }),
         .signature = IndexType(.{ .heap = .blob }),
     };
-
-    pub fn Type(column: FieldColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const MethodDefColumn = enum {
@@ -227,10 +215,6 @@ pub const MethodDefColumn = enum {
         .signature = IndexType(.{ .heap = .blob }),
         .param_list = IndexType(.{ .table = .param }),
     };
-
-    pub fn Type(column: MethodDefColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const ParamColumn = enum {
@@ -243,10 +227,6 @@ pub const ParamColumn = enum {
         .sequence = IntType(2),
         .name = IndexType(.{ .heap = .string }),
     };
-
-    pub fn Type(column: ParamColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const InterfaceImplColumn = enum {
@@ -257,10 +237,6 @@ pub const InterfaceImplColumn = enum {
         .class = IndexType(.{ .table = .type_def }),
         .interface = CodedIndexType(.type_def_or_ref),
     };
-
-    pub fn Type(column: InterfaceImplColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const MemberRefColumn = enum {
@@ -273,10 +249,6 @@ pub const MemberRefColumn = enum {
         .name = IndexType(.{ .heap = .string }),
         .signature = IndexType(.{ .heap = .blob }),
     };
-
-    pub fn Type(column: MemberRefColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const ConstantColumn = enum {
@@ -289,10 +261,6 @@ pub const ConstantColumn = enum {
         .parent = CodedIndexType(.has_constant),
         .value = IndexType(.{ .heap = .blob }),
     };
-
-    pub fn Type(column: ConstantColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const CustomAttributeColumn = enum {
@@ -305,10 +273,6 @@ pub const CustomAttributeColumn = enum {
         .type = CodedIndexType(.custom_attribute_type),
         .value = IndexType(.{ .heap = .blob }),
     };
-
-    pub fn Type(column: CustomAttributeColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const FieldMarshalColumn = enum {
@@ -319,10 +283,6 @@ pub const FieldMarshalColumn = enum {
         .parent = CodedIndexType(.has_field_marshal),
         .native_type = IndexType(.{ .heap = .blob }),
     };
-
-    pub fn Type(column: FieldMarshalColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const DeclSecurityColumn = enum {
@@ -335,10 +295,6 @@ pub const DeclSecurityColumn = enum {
         .parent = CodedIndexType(.has_decl_security),
         .permission_set = IndexType(.{ .heap = .blob }),
     };
-
-    pub fn Type(column: DeclSecurityColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const ClassLayoutColumn = enum {
@@ -351,10 +307,6 @@ pub const ClassLayoutColumn = enum {
         .class_size = IntType(4),
         .parent = IndexType(.{ .table = .type_def }),
     };
-
-    pub fn Type(column: ClassLayoutColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const FieldLayoutColumn = enum {
@@ -365,10 +317,6 @@ pub const FieldLayoutColumn = enum {
         .offset = IntType(4),
         .field = IndexType(.{ .table = .field }),
     };
-
-    pub fn Type(column: FieldLayoutColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const StandAloneSigColumn = enum {
@@ -377,10 +325,6 @@ pub const StandAloneSigColumn = enum {
     const properties: std.enums.EnumFieldStruct(StandAloneSigColumn, type, null) = .{
         .signature = IndexType(.{ .heap = .blob }),
     };
-
-    pub fn Type(column: StandAloneSigColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const EventMapColumn = enum {
@@ -391,10 +335,6 @@ pub const EventMapColumn = enum {
         .parent = IndexType(.{ .table = .type_def }),
         .event_list = IndexType(.{ .table = .event }),
     };
-
-    pub fn Type(column: EventMapColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const EventColumn = enum {
@@ -407,10 +347,6 @@ pub const EventColumn = enum {
         .name = IndexType(.{ .heap = .string }),
         .event_type = CodedIndexType(.type_def_or_ref),
     };
-
-    pub fn Type(column: EventColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const PropertyMapColumn = enum {
@@ -421,10 +357,6 @@ pub const PropertyMapColumn = enum {
         .parent = IndexType(.{ .table = .type_def }),
         .property_list = IndexType(.{ .table = .property }),
     };
-
-    pub fn Type(column: PropertyMapColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const PropertyColumn = enum {
@@ -437,10 +369,6 @@ pub const PropertyColumn = enum {
         .name = IndexType(.{ .heap = .string }),
         .type = IndexType(.{ .heap = .blob }),
     };
-
-    pub fn Type(column: PropertyColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const MethodSemanticsColumn = enum {
@@ -453,10 +381,6 @@ pub const MethodSemanticsColumn = enum {
         .method = IndexType(.{ .table = .method_def }),
         .association = CodedIndexType(.has_semantics),
     };
-
-    pub fn Type(column: MethodSemanticsColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const MethodImplColumn = enum {
@@ -469,10 +393,6 @@ pub const MethodImplColumn = enum {
         .method_body = CodedIndexType(.method_def_or_ref),
         .method_declaration = CodedIndexType(.method_def_or_ref),
     };
-
-    pub fn Type(column: MethodImplColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const ModuleRefColumn = enum {
@@ -481,10 +401,6 @@ pub const ModuleRefColumn = enum {
     const properties: std.enums.EnumFieldStruct(ModuleRefColumn, type, null) = .{
         .name = IndexType(.{ .heap = .string }),
     };
-
-    pub fn Type(column: ModuleRefColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const TypeSpecColumn = enum {
@@ -493,10 +409,6 @@ pub const TypeSpecColumn = enum {
     const properties: std.enums.EnumFieldStruct(TypeSpecColumn, type, null) = .{
         .signature = IndexType(.{ .heap = .blob }),
     };
-
-    pub fn Type(column: TypeSpecColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const ImplMapColumn = enum {
@@ -511,10 +423,6 @@ pub const ImplMapColumn = enum {
         .import_name = IndexType(.{ .heap = .string }),
         .import_scope = IndexType(.{ .table = .module_ref }),
     };
-
-    pub fn Type(column: ImplMapColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const FieldRvaColumn = enum {
@@ -525,10 +433,6 @@ pub const FieldRvaColumn = enum {
         .rva = IntType(4),
         .field = IndexType(.{ .table = .field }),
     };
-
-    pub fn Type(column: FieldRvaColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const AssemblyColumn = enum {
@@ -547,10 +451,6 @@ pub const AssemblyColumn = enum {
         .name = IndexType(.{ .heap = .string }),
         .culture = IndexType(.{ .heap = .string }),
     };
-
-    pub fn Type(column: AssemblyColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const AssemblyProcessorColumn = enum {
@@ -559,10 +459,6 @@ pub const AssemblyProcessorColumn = enum {
     const properties: std.enums.EnumFieldStruct(AssemblyProcessorColumn, type, null) = .{
         .processor = IntType(4),
     };
-
-    pub fn Type(column: AssemblyProcessorColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const AssemblyOsColumn = enum {
@@ -575,10 +471,6 @@ pub const AssemblyOsColumn = enum {
         .os_major_version = IntType(4),
         .os_minor_version = IntType(4),
     };
-
-    pub fn Type(column: AssemblyOsColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const AssemblyRefColumn = enum {
@@ -597,10 +489,6 @@ pub const AssemblyRefColumn = enum {
         .culture = IndexType(.{ .heap = .string }),
         .hash_value = IndexType(.{ .heap = .blob }),
     };
-
-    pub fn Type(column: AssemblyRefColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const AssemblyRefProcessorColumn = enum {
@@ -611,10 +499,6 @@ pub const AssemblyRefProcessorColumn = enum {
         .processor = IntType(4),
         .assembly_ref = IndexType(.{ .table = .assembly_ref }),
     };
-
-    pub fn Type(column: AssemblyRefProcessorColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const AssemblyRefOsColumn = enum {
@@ -629,10 +513,6 @@ pub const AssemblyRefOsColumn = enum {
         .os_minor_version = IntType(4),
         .assembly_ref = IndexType(.{ .table = .assembly_ref }),
     };
-
-    pub fn Type(column: AssemblyRefOsColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const FileColumn = enum {
@@ -645,10 +525,6 @@ pub const FileColumn = enum {
         .name = IndexType(.{ .heap = .string }),
         .hash_value = IndexType(.{ .heap = .blob }),
     };
-
-    pub fn Type(column: FileColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const ExportedTypeColumn = enum {
@@ -665,10 +541,6 @@ pub const ExportedTypeColumn = enum {
         .type_namespace = IndexType(.{ .heap = .string }),
         .implementation = CodedIndexType(.implementation),
     };
-
-    pub fn Type(column: ExportedTypeColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const ManifestResourceColumn = enum {
@@ -683,10 +555,6 @@ pub const ManifestResourceColumn = enum {
         .name = IndexType(.{ .heap = .string }),
         .implementation = CodedIndexType(.implementation),
     };
-
-    pub fn Type(column: ManifestResourceColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const NestedClassColumn = enum {
@@ -697,10 +565,6 @@ pub const NestedClassColumn = enum {
         .nested_class = IndexType(.{ .table = .type_def }),
         .enclosing_class = IndexType(.{ .table = .type_def }),
     };
-
-    pub fn Type(column: NestedClassColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const GenericParamColumn = enum {
@@ -715,10 +579,6 @@ pub const GenericParamColumn = enum {
         .owner = CodedIndexType(.type_or_method_def),
         .name = IndexType(.{ .heap = .string }),
     };
-
-    pub fn Type(column: GenericParamColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const MethodSpecColumn = enum {
@@ -729,10 +589,6 @@ pub const MethodSpecColumn = enum {
         .method = CodedIndexType(.method_def_or_ref),
         .instantiation = IndexType(.{ .heap = .blob }),
     };
-
-    pub fn Type(column: MethodSpecColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const GenericParamConstraintColumn = enum {
@@ -743,10 +599,6 @@ pub const GenericParamConstraintColumn = enum {
         .owner = IndexType(.{ .table = .generic_param }),
         .constraint = CodedIndexType(.type_def_or_ref),
     };
-
-    pub fn Type(column: GenericParamConstraintColumn) type {
-        return @field(properties, @tagName(column));
-    }
 };
 
 pub const CodedIndex = enum {
