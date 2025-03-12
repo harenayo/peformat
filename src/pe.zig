@@ -16,7 +16,10 @@ pub const Pe = struct {
         const raw_dos_header = try reader.readStructEndian(win32.system.system_services.IMAGE_DOS_HEADER, .little);
 
         const dos_header: DosHeader = .{
-            .magic = try std.meta.intToEnum(@FieldType(DosHeader, "magic"), raw_dos_header.e_magic),
+            .magic = switch (raw_dos_header.e_magic) {
+                win32.system.system_services.IMAGE_DOS_SIGNATURE => .signature,
+                else => return error.PeInvalidDosSignature,
+            },
             .last_page_bytes = raw_dos_header.e_cblp,
             .pages = raw_dos_header.e_cp,
             .relocs_count = raw_dos_header.e_crlc,
@@ -39,7 +42,12 @@ pub const Pe = struct {
 
         try stream.seekTo(dos_header.new_header_addr);
         const raw_nt_signature = try reader.readInt(u32, .little);
-        const nt_signature = try std.meta.intToEnum(NtSignature, raw_nt_signature);
+
+        const nt_signature: NtSignature = switch (raw_nt_signature) {
+            win32.system.system_services.IMAGE_NT_SIGNATURE => .signature,
+            else => return error.PeInvalidNtSignature,
+        };
+
         const raw_coff_header = try reader.readStructEndian(win32.system.diagnostics.debug.IMAGE_FILE_HEADER, .little);
 
         const coff_header: std.coff.CoffHeader = .{
@@ -233,8 +241,8 @@ pub const Pe = struct {
 };
 
 pub const DosHeader = struct {
-    magic: enum(u16) {
-        dos_signature = win32.system.system_services.IMAGE_DOS_SIGNATURE,
+    magic: enum {
+        signature,
     },
     last_page_bytes: u16,
     pages: u16,
@@ -256,8 +264,8 @@ pub const DosHeader = struct {
     new_header_addr: u32,
 };
 
-pub const NtSignature = enum(u32) {
-    nt_signature = win32.system.system_services.IMAGE_NT_SIGNATURE,
+pub const NtSignature = enum {
+    signature,
 };
 
 pub const OptionalHeader = union(enum) {
