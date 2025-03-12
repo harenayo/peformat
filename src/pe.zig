@@ -16,7 +16,7 @@ pub const Pe = struct {
         const raw_dos_header = try reader.readStructEndian(win32.system.system_services.IMAGE_DOS_HEADER, .little);
 
         const dos_header: DosHeader = .{
-            .magic = try std.meta.intToEnum(DosSignature, raw_dos_header.e_magic),
+            .magic = try std.meta.intToEnum(@FieldType(DosHeader, "magic"), raw_dos_header.e_magic),
             .last_page_bytes = raw_dos_header.e_cblp,
             .pages = raw_dos_header.e_cp,
             .relocs_count = raw_dos_header.e_crlc,
@@ -233,7 +233,9 @@ pub const Pe = struct {
 };
 
 pub const DosHeader = struct {
-    magic: DosSignature,
+    magic: enum(u16) {
+        dos_signature = win32.system.system_services.IMAGE_DOS_SIGNATURE,
+    },
     last_page_bytes: u16,
     pages: u16,
     relocs_count: u16,
@@ -252,10 +254,6 @@ pub const DosHeader = struct {
     oem_info: u16,
     reserved2: [10]u16,
     new_header_addr: u32,
-};
-
-pub const DosSignature = enum(u16) {
-    dos_signature = win32.system.system_services.IMAGE_DOS_SIGNATURE,
 };
 
 pub const NtSignature = enum(u32) {
