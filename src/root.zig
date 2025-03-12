@@ -24,8 +24,8 @@ test {
     const tables_data = metadata.streamData(tables_header, metadata_bytes);
     const tables = try table_stream.TableStream.read(std.testing.allocator, tables_data);
     defer tables.free();
-    for (pe_data.section_headers.items) |section_header| std.debug.print("{?s}\n", .{section_header.getName()});
-    std.debug.print("{s}\n", .{metadata_data.root.version.items});
-    for (metadata_data.root.stream_headers.items) |stream_header| std.debug.print("{s}\n", .{stream_header.name.items});
-    std.debug.print("{}\n", .{tables.tables});
+
+    for (tables.tables.type_def.items) |type_def| {
+        std.debug.print("{}\n", .{type_def});
+    }
 }
