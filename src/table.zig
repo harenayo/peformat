@@ -97,7 +97,7 @@ pub const Table = enum {
         .generic_param_constraint = .{ 0x2C, GenericParamConstraintColumn },
     };
 
-    pub fn id(comptime table: Table) u6 {
+    pub fn number(comptime table: Table) u6 {
         return @field(properties, @tagName(table))[0];
     }
 
@@ -106,28 +106,32 @@ pub const Table = enum {
     }
 
     pub fn validBit(comptime table: Table) u64 {
-        return @as(u64, 1) << table.id();
+        return @as(u64, 1) << table.number();
+    }
+
+    pub fn ColumnType(table: Table, column: table.Column()) type {
+        return @field(table.Column().properties, @tagName(column));
     }
 
     pub fn Row(table: Table) type {
-        const table_columns = std.enums.values(table.Column());
-        var row_struct_fields: [table_columns.len]std.builtin.Type.StructField = undefined;
+        const columns = std.meta.tags(table.Column());
+        var row_fields: [columns.len]std.builtin.Type.StructField = undefined;
 
-        for (&row_struct_fields, table_columns) |*row_struct_field, table_column| {
-            const DataType = @field(table.Column().properties, @tagName(table_column));
+        for (&row_fields, columns) |*row_field, column| {
+            const Type = table.ColumnType(column);
 
-            row_struct_field.* = .{
-                .name = @tagName(table_column),
-                .type = DataType,
+            row_field.* = .{
+                .name = @tagName(column),
+                .type = Type,
                 .default_value_ptr = null,
                 .is_comptime = false,
-                .alignment = @alignOf(DataType),
+                .alignment = @alignOf(Type),
             };
         }
 
         return @Type(.{ .@"struct" = .{
             .layout = .auto,
-            .fields = &row_struct_fields,
+            .fields = &row_fields,
             .decls = &.{},
             .is_tuple = false,
         } });
@@ -135,8 +139,11 @@ pub const Table = enum {
 
     pub fn readRow(comptime table: Table, stream: *std.io.FixedBufferStream([]const u8), sizes: IndexSizes) !table.Row() {
         var row: table.Row() = undefined;
-        const row_struct_fields = @typeInfo(table.Row()).@"struct".fields;
-        inline for (row_struct_fields) |row_struct_field| @field(row, row_struct_field.name) = try row_struct_field.type.read(stream, sizes);
+
+        inline for (std.meta.fields(table.Row())) |row_field| {
+            @field(row, row_field.name) = try row_field.type.read(stream, sizes);
+        }
+
         return row;
     }
 };
@@ -712,14 +719,13 @@ pub const CodedIndex = enum {
 
     pub fn tables(comptime index: CodedIndex) []const Table {
         const tag_values = comptime index.tagValues();
-        const table_values = comptime std.enums.values(Table);
         comptime var result: []const Table = &.{};
 
-        inline for (table_values) |table_value| {
+        inline for (std.meta.tags(Table)) |table| {
             @setEvalBranchQuota(4000);
 
-            if (@field(tag_values, @tagName(table_value))) |_| {
-                result = result ++ .{table_value};
+            if (@field(tag_values, @tagName(table))) |_| {
+                result = result ++ .{table};
             }
         }
 
@@ -727,21 +733,18 @@ pub const CodedIndex = enum {
     }
 
     pub fn Tag(comptime index: CodedIndex) type {
-        const tag_bits = index.tagBits();
-
         const Int = @Type(.{ .int = .{
             .signedness = .unsigned,
-            .bits = tag_bits,
+            .bits = index.tagBits(),
         } });
 
         const tag_values = index.tagValues();
-        const tag_values_fields = @typeInfo(@TypeOf(tag_values)).@"struct".fields;
         var tag_fields: []const std.builtin.Type.EnumField = &.{};
 
-        for (tag_values_fields) |tags_struct_field| {
-            if (@field(tag_values, tags_struct_field.name)) |tag_value| {
+        for (std.meta.tags(Table)) |table| {
+            if (@field(tag_values, @tagName(table))) |tag_value| {
                 tag_fields = tag_fields ++ .{std.builtin.Type.EnumField{
-                    .name = tags_struct_field.name,
+                    .name = @tagName(table),
                     .value = tag_value,
                 }};
             }
@@ -859,71 +862,68 @@ pub const TableStream = struct {
             Sorted: u64,
         }, .little);
 
-        const table_values = comptime std.enums.values(Table);
         var valid_vector = raw_table_stream_0.Valid;
         var rows = try std.ArrayList(u32).initCapacity(allocator, @popCount(raw_table_stream_0.Valid));
         errdefer rows.deinit();
-        var table_row_counts: std.enums.EnumFieldStruct(Table, u32, 0) = .{};
+        var row_counts: std.enums.EnumFieldStruct(Table, u32, 0) = .{};
 
-        inline for (table_values) |table_value| {
-            const valid_bit = table_value.validBit();
+        inline for (comptime std.meta.tags(Table)) |table| {
+            const valid_bit = table.validBit();
 
             if (valid_vector & valid_bit != 0) {
                 valid_vector &= ~valid_bit;
                 const table_row_count = try reader.readInt(u32, .little);
                 rows.appendAssumeCapacity(table_row_count);
-                @field(table_row_counts, @tagName(table_value)) = table_row_count;
+                @field(row_counts, @tagName(table)) = table_row_count;
             }
         }
 
         if (valid_vector != 0) return error.PeInvalidTableValidVector;
         var index_sizes: IndexSizes = undefined;
-        const heap_values = comptime std.enums.values(Heap);
-        const coded_values = comptime std.enums.values(CodedIndex);
 
-        inline for (heap_values) |heap_value| {
-            @field(index_sizes.heap, @tagName(heap_value)) = switch (heap_value.flagBit() & raw_table_stream_0.HeapSizes) {
+        inline for (comptime std.meta.tags(Heap)) |heap| {
+            @field(index_sizes.heap, @tagName(heap)) = switch (heap.flagBit() & raw_table_stream_0.HeapSizes) {
                 0 => .small,
                 else => .large,
             };
         }
 
-        inline for (table_values) |table_value| {
-            @field(index_sizes.table, @tagName(table_value)) = .calcFromRowCounts(0, &.{@field(table_row_counts, @tagName(table_value))});
+        inline for (comptime std.meta.tags(Table)) |table| {
+            @field(index_sizes.table, @tagName(table)) = .calcFromRowCounts(0, &.{@field(row_counts, @tagName(table))});
         }
 
-        inline for (coded_values) |coded_value| {
-            const tag_bits = coded_value.tagBits();
-            const coded_tables = comptime coded_value.tables();
-            var tags_row_counts: [coded_tables.len]u32 = undefined;
+        inline for (comptime std.meta.tags(CodedIndex)) |index| {
+            const tag_bits = index.tagBits();
+            const coded_tables = comptime index.tables();
+            var coded_row_counts: [coded_tables.len]u32 = undefined;
 
-            inline for (&tags_row_counts, coded_tables) |*tags_row_count, coded_table| {
-                tags_row_count.* = @field(table_row_counts, @tagName(coded_table));
+            inline for (&coded_row_counts, coded_tables) |*coded_row_count, coded_table| {
+                coded_row_count.* = @field(row_counts, @tagName(coded_table));
             }
 
-            @field(index_sizes.coded, @tagName(coded_value)) = .calcFromRowCounts(tag_bits, &tags_row_counts);
+            @field(index_sizes.coded, @tagName(index)) = .calcFromRowCounts(tag_bits, &coded_row_counts);
         }
 
         var initialized_tables = std.enums.EnumSet(Table).initEmpty();
         var tables: Tables = undefined;
 
         errdefer {
-            @setEvalBranchQuota(6000);
+            @setEvalBranchQuota(10000);
 
-            inline for (table_values) |table_tag| {
-                if (initialized_tables.contains(table_tag)) {
-                    @field(tables, @tagName(table_tag)).deinit();
+            inline for (comptime std.meta.tags(Table)) |table| {
+                if (initialized_tables.contains(table)) {
+                    @field(tables, @tagName(table)).deinit();
                 }
             }
         }
 
-        inline for (table_values) |table_tag| {
-            const table_row_count = @field(table_row_counts, @tagName(table_tag));
-            var table_rows = try std.ArrayList(table_tag.Row()).initCapacity(allocator, table_row_count);
+        inline for (comptime std.meta.tags(Table)) |table| {
+            const row_count = @field(row_counts, @tagName(table));
+            var table_rows = try std.ArrayList(table.Row()).initCapacity(allocator, row_count);
             errdefer table_rows.deinit();
-            for (0..table_row_count) |_| table_rows.appendAssumeCapacity(try table_tag.readRow(&stream, index_sizes));
-            @field(tables, @tagName(table_tag)) = table_rows;
-            initialized_tables.insert(table_tag);
+            for (0..row_count) |_| table_rows.appendAssumeCapacity(try table.readRow(&stream, index_sizes));
+            @field(tables, @tagName(table)) = table_rows;
+            initialized_tables.insert(table);
         }
 
         return .{
@@ -941,33 +941,32 @@ pub const TableStream = struct {
 
     pub fn free(stream: TableStream) void {
         stream.rows.deinit();
-        const tables_struct_fields = @typeInfo(Tables).@"struct".fields;
 
-        inline for (tables_struct_fields) |tables_struct_field| {
-            @field(stream.tables, tables_struct_field.name).deinit();
+        inline for (comptime std.meta.fieldNames(Tables)) |field_name| {
+            @field(stream.tables, field_name).deinit();
         }
     }
 };
 
 pub const Tables = blk: {
-    const table_tags = std.enums.values(Table);
-    var tables_struct_fields: [table_tags.len]std.builtin.Type.StructField = undefined;
+    const table_tags = std.meta.tags(Table);
+    var tables_fields: [table_tags.len]std.builtin.Type.StructField = undefined;
 
-    for (&tables_struct_fields, table_tags) |*tables_struct_field, table_tag| {
-        const TablesFieldType = std.ArrayList(table_tag.Row());
+    for (&tables_fields, table_tags) |*tables_field, table_tag| {
+        const Type = std.ArrayList(table_tag.Row());
 
-        tables_struct_field.* = .{
+        tables_field.* = .{
             .name = @tagName(table_tag),
-            .type = TablesFieldType,
+            .type = Type,
             .default_value_ptr = null,
             .is_comptime = false,
-            .alignment = @alignOf(TablesFieldType),
+            .alignment = @alignOf(Type),
         };
     }
 
     break :blk @Type(.{ .@"struct" = .{
         .layout = .auto,
-        .fields = &tables_struct_fields,
+        .fields = &tables_fields,
         .decls = &.{},
         .is_tuple = false,
     } });
