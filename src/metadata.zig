@@ -15,7 +15,6 @@ pub const Metadata = struct {
             Length: u32,
         }, .little);
 
-        if (raw_metadata_root_0.Signature != 0x424A5342) return error.PeInvalidCliMetadataSignature;
         var version = try std.ArrayList(u8).initCapacity(allocator, raw_metadata_root_0.Length - 1);
         errdefer version.deinit();
         try reader.streamUntilDelimiter(version.writer(), 0, raw_metadata_root_0.Length);
@@ -55,7 +54,10 @@ pub const Metadata = struct {
         }
 
         const metadata_root: Root = .{
-            .signature = raw_metadata_root_0.Signature,
+            .signature = switch (raw_metadata_root_0.Signature) {
+                0x424A5342 => .signature,
+                else => return error.PeInvalidCliMetadataSignature,
+            },
             .major_version = raw_metadata_root_0.MajorVersion,
             .minor_version = raw_metadata_root_0.MinorVersion,
             .reserved = raw_metadata_root_0.Reserved,
@@ -102,7 +104,9 @@ pub const Metadata = struct {
 };
 
 pub const Root = struct {
-    signature: u32,
+    signature: enum {
+        signature,
+    },
     major_version: u16,
     minor_version: u16,
     reserved: u32,
