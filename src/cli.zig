@@ -18,16 +18,6 @@ pub const Cli = struct {
             raw_cor20_header.MetaData.VirtualAddress = @byteSwap(raw_cor20_header.MetaData.VirtualAddress);
             raw_cor20_header.MetaData.Size = @byteSwap(raw_cor20_header.MetaData.Size);
             raw_cor20_header.Flags = @byteSwap(raw_cor20_header.Flags);
-        }
-
-        const native_entry_point = raw_cor20_header.Flags & @intFromEnum(win32.system.system_services.COMIMAGE_FLAGS_NATIVE_ENTRYPOINT) != 0;
-
-        if (swap_bytes) {
-            switch (native_entry_point) {
-                false => raw_cor20_header.Anonymous.EntryPointToken = @byteSwap(raw_cor20_header.Anonymous.EntryPointToken),
-                true => raw_cor20_header.Anonymous.EntryPointRVA = @byteSwap(raw_cor20_header.Anonymous.EntryPointRVA),
-            }
-
             raw_cor20_header.Resources.VirtualAddress = @byteSwap(raw_cor20_header.Resources.VirtualAddress);
             raw_cor20_header.Resources.Size = @byteSwap(raw_cor20_header.Resources.Size);
             raw_cor20_header.StrongNameSignature.VirtualAddress = @byteSwap(raw_cor20_header.StrongNameSignature.VirtualAddress);
@@ -42,6 +32,15 @@ pub const Cli = struct {
             raw_cor20_header.ManagedNativeHeader.Size = @byteSwap(raw_cor20_header.ManagedNativeHeader.Size);
         }
 
+        const native_entry_point = raw_cor20_header.Flags & @intFromEnum(win32.system.system_services.COMIMAGE_FLAGS_NATIVE_ENTRYPOINT) != 0;
+
+        if (swap_bytes) {
+            switch (native_entry_point) {
+                false => raw_cor20_header.Anonymous.EntryPointToken = @byteSwap(raw_cor20_header.Anonymous.EntryPointToken),
+                true => raw_cor20_header.Anonymous.EntryPointRVA = @byteSwap(raw_cor20_header.Anonymous.EntryPointRVA),
+            }
+        }
+
         const cor20_header: Cor20Header = .{
             .size = raw_cor20_header.cb,
             .major_runtime_version = raw_cor20_header.MajorRuntimeVersion,
@@ -50,7 +49,15 @@ pub const Cli = struct {
                 .virtual_address = raw_cor20_header.MetaData.VirtualAddress,
                 .size = raw_cor20_header.MetaData.Size,
             },
-            .flags = raw_cor20_header.Flags,
+            .flags = .{
+                .il_only = raw_cor20_header.Flags & @intFromEnum(win32.system.system_services.COMIMAGE_FLAGS_ILONLY) != 0,
+                .@"32bit_required" = raw_cor20_header.Flags & @intFromEnum(win32.system.system_services.COMIMAGE_FLAGS_32BITREQUIRED) != 0,
+                .il_library = raw_cor20_header.Flags & @intFromEnum(win32.system.system_services.COMIMAGE_FLAGS_IL_LIBRARY) != 0,
+                .strong_name_signed = raw_cor20_header.Flags & @intFromEnum(win32.system.system_services.COMIMAGE_FLAGS_STRONGNAMESIGNED) != 0,
+                .native_entry_point = native_entry_point,
+                .track_debug_data = raw_cor20_header.Flags & @intFromEnum(win32.system.system_services.COMIMAGE_FLAGS_TRACKDEBUGDATA) != 0,
+                .@"32bit_preferred" = raw_cor20_header.Flags & @intFromEnum(win32.system.system_services.COMIMAGE_FLAGS_32BITPREFERRED) != 0,
+            },
             .anonymous = switch (native_entry_point) {
                 false => .{ .entry_point_token = raw_cor20_header.Anonymous.EntryPointToken },
                 true => .{ .entry_point_rva = raw_cor20_header.Anonymous.EntryPointRVA },
@@ -92,7 +99,15 @@ pub const Cor20Header = struct {
     major_runtime_version: u16,
     minor_runtime_version: u16,
     metadata: std.coff.ImageDataDirectory,
-    flags: u32,
+    flags: struct {
+        il_only: bool,
+        @"32bit_required": bool,
+        il_library: bool,
+        strong_name_signed: bool,
+        native_entry_point: bool,
+        track_debug_data: bool,
+        @"32bit_preferred": bool,
+    },
     anonymous: union(enum) {
         entry_point_token: u32,
         entry_point_rva: u32,
