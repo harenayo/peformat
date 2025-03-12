@@ -4,7 +4,7 @@ const win32 = @import("win32");
 
 pub const Pe = struct {
     dos_header: DosHeader,
-    nt_signature: u32,
+    nt_signature: NtSignature,
     coff_header: std.coff.CoffHeader,
     optional_header: OptionalHeader,
     data_directories: [std.coff.IMAGE_NUMBEROF_DIRECTORY_ENTRIES]std.coff.ImageDataDirectory,
@@ -16,7 +16,7 @@ pub const Pe = struct {
         const raw_dos_header = try reader.readStructEndian(win32.system.system_services.IMAGE_DOS_HEADER, .little);
 
         const dos_header: DosHeader = .{
-            .magic = raw_dos_header.e_magic,
+            .magic = try std.meta.intToEnum(DosHeaderMagic, raw_dos_header.e_magic),
             .last_page_bytes = raw_dos_header.e_cblp,
             .pages = raw_dos_header.e_cp,
             .relocs_count = raw_dos_header.e_crlc,
@@ -37,10 +37,9 @@ pub const Pe = struct {
             .new_header_addr = @bitCast(raw_dos_header.e_lfanew),
         };
 
-        if (dos_header.magic != win32.system.system_services.IMAGE_DOS_SIGNATURE) return error.PeInvalidDosSignature;
         try stream.seekTo(dos_header.new_header_addr);
-        const nt_signature = try reader.readInt(u32, .little);
-        if (nt_signature != win32.system.system_services.IMAGE_NT_SIGNATURE) return error.PeInvalidNtSignature;
+        const raw_nt_signature = try reader.readInt(u32, .little);
+        const nt_signature = try std.meta.intToEnum(NtSignature, raw_nt_signature);
         const raw_coff_header = try reader.readStructEndian(win32.system.diagnostics.debug.IMAGE_FILE_HEADER, .little);
 
         const coff_header: std.coff.CoffHeader = .{
@@ -234,7 +233,7 @@ pub const Pe = struct {
 };
 
 pub const DosHeader = struct {
-    magic: u16,
+    magic: DosHeaderMagic,
     last_page_bytes: u16,
     pages: u16,
     relocs_count: u16,
@@ -253,6 +252,14 @@ pub const DosHeader = struct {
     oem_info: u16,
     reserved2: [10]u16,
     new_header_addr: u32,
+};
+
+pub const DosHeaderMagic = enum(u16) {
+    dos_signature = win32.system.system_services.IMAGE_DOS_SIGNATURE,
+};
+
+pub const NtSignature = enum(u32) {
+    nt_signature = win32.system.system_services.IMAGE_NT_SIGNATURE,
 };
 
 pub const OptionalHeader = union(enum) {
