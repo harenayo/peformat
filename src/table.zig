@@ -181,7 +181,7 @@ pub const TypeDefColumn = enum {
     method_list,
 
     const properties: std.enums.EnumFieldStruct(TypeDefColumn, type, null) = .{
-        .flags = TypeAttributes,
+        .flags = TypeAttributesData,
         .type_name = HeapIndexData(.string),
         .type_namespace = HeapIndexData(.string),
         .extends = CodedIndexData(.type_def_or_ref),
@@ -196,7 +196,7 @@ pub const FieldColumn = enum {
     signature,
 
     const properties: std.enums.EnumFieldStruct(FieldColumn, type, null) = .{
-        .flags = FieldAttributes,
+        .flags = FieldAttributesData,
         .name = HeapIndexData(.string),
         .signature = HeapIndexData(.blob),
     };
@@ -212,8 +212,8 @@ pub const MethodDefColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(MethodDefColumn, type, null) = .{
         .rva = IntData(4),
-        .impl_flags = MethodImplAttributes,
-        .flags = MethodAttributes,
+        .impl_flags = MethodImplAttributesData,
+        .flags = MethodAttributesData,
         .name = HeapIndexData(.string),
         .signature = HeapIndexData(.blob),
         .param_list = TableIndexData(.param),
@@ -226,7 +226,7 @@ pub const ParamColumn = enum {
     name,
 
     const properties: std.enums.EnumFieldStruct(ParamColumn, type, null) = .{
-        .flags = ParameterAttributes,
+        .flags = ParameterAttributesData,
         .sequence = IntData(2),
         .name = HeapIndexData(.string),
     };
@@ -346,7 +346,7 @@ pub const EventColumn = enum {
     event_type,
 
     const properties: std.enums.EnumFieldStruct(EventColumn, type, null) = .{
-        .event_flags = EventAttributes,
+        .event_flags = EventAttributesData,
         .name = HeapIndexData(.string),
         .event_type = CodedIndexData(.type_def_or_ref),
     };
@@ -368,7 +368,7 @@ pub const PropertyColumn = enum {
     type,
 
     const properties: std.enums.EnumFieldStruct(PropertyColumn, type, null) = .{
-        .flags = PropertyAttributes,
+        .flags = PropertyAttributesData,
         .name = HeapIndexData(.string),
         .type = HeapIndexData(.blob),
     };
@@ -380,7 +380,7 @@ pub const MethodSemanticsColumn = enum {
     association,
 
     const properties: std.enums.EnumFieldStruct(MethodSemanticsColumn, type, null) = .{
-        .semantics = MethodSemanticsAttributes,
+        .semantics = MethodSemanticsAttributesData,
         .method = TableIndexData(.method_def),
         .association = CodedIndexData(.has_semantics),
     };
@@ -421,7 +421,7 @@ pub const ImplMapColumn = enum {
     import_scope,
 
     const properties: std.enums.EnumFieldStruct(ImplMapColumn, type, null) = .{
-        .mapping_flags = PInvokeAttributes,
+        .mapping_flags = PInvokeAttributesData,
         .member_forwarded = CodedIndexData(.member_forwarded),
         .import_name = HeapIndexData(.string),
         .import_scope = TableIndexData(.module_ref),
@@ -447,9 +447,9 @@ pub const AssemblyColumn = enum {
     culture,
 
     const properties: std.enums.EnumFieldStruct(AssemblyColumn, type, null) = .{
-        .hash_alg_id = AssemblyHashAlgorithm,
+        .hash_alg_id = AssemblyHashAlgorithmData,
         .versions = VersionsData,
-        .flags = AssemblyFlags,
+        .flags = AssemblyFlagsData,
         .public_key = HeapIndexData(.blob),
         .name = HeapIndexData(.string),
         .culture = HeapIndexData(.string),
@@ -486,7 +486,7 @@ pub const AssemblyRefColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(AssemblyRefColumn, type, null) = .{
         .versions = VersionsData,
-        .flags = AssemblyFlags,
+        .flags = AssemblyFlagsData,
         .public_key_or_token = HeapIndexData(.blob),
         .name = HeapIndexData(.string),
         .culture = HeapIndexData(.string),
@@ -524,7 +524,7 @@ pub const FileColumn = enum {
     hash_value,
 
     const properties: std.enums.EnumFieldStruct(FileColumn, type, null) = .{
-        .flags = FileAttributes,
+        .flags = FileAttributesData,
         .name = HeapIndexData(.string),
         .hash_value = HeapIndexData(.blob),
     };
@@ -538,7 +538,7 @@ pub const ExportedTypeColumn = enum {
     implementation,
 
     const properties: std.enums.EnumFieldStruct(ExportedTypeColumn, type, null) = .{
-        .flags = TypeAttributes,
+        .flags = TypeAttributesData,
         .type_def_id = IntData(4),
         .type_name = HeapIndexData(.string),
         .type_namespace = HeapIndexData(.string),
@@ -554,7 +554,7 @@ pub const ManifestResourceColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(ManifestResourceColumn, type, null) = .{
         .offset = IntData(4),
-        .flags = ManifestResourceAttributes,
+        .flags = ManifestResourceAttributesData,
         .name = HeapIndexData(.string),
         .implementation = CodedIndexData(.implementation),
     };
@@ -578,7 +578,7 @@ pub const GenericParamColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(GenericParamColumn, type, null) = .{
         .number = IntData(2),
-        .flags = GenericParameterAttributes,
+        .flags = GenericParameterAttributesData,
         .owner = CodedIndexData(.type_or_method_def),
         .name = HeapIndexData(.string),
     };
@@ -966,7 +966,7 @@ pub fn PackedInt(Int: type) type {
     };
 }
 
-pub const AssemblyHashAlgorithm = struct {
+pub const AssemblyHashAlgorithmData = struct {
     pub const Type = enum {
         none,
         md5,
@@ -999,7 +999,7 @@ pub const AssemblyHashAlgorithm = struct {
     }
 };
 
-pub const AssemblyFlags = struct {
+pub const AssemblyFlagsData = struct {
     pub const Type = struct {
         public_key: bool,
         retargetable: bool,
@@ -1039,7 +1039,7 @@ pub const AssemblyFlags = struct {
     }
 };
 
-pub const EventAttributes = struct {
+pub const EventAttributesData = struct {
     pub const Type = struct {
         special_name: bool,
         rt_special_name: bool,
@@ -1066,7 +1066,7 @@ pub const EventAttributes = struct {
     }
 };
 
-pub const FieldAttributes = struct {
+pub const FieldAttributesData = struct {
     pub const Type = struct {
         field_access: enum {
             private_scope,
@@ -1139,7 +1139,7 @@ pub const FieldAttributes = struct {
     }
 };
 
-pub const FileAttributes = struct {
+pub const FileAttributesData = struct {
     pub const Type = enum {
         contains_meta_data,
         contains_no_meta_data,
@@ -1160,7 +1160,7 @@ pub const FileAttributes = struct {
     }
 };
 
-pub const GenericParameterAttributes = struct {
+pub const GenericParameterAttributesData = struct {
     pub const Type = struct {
         variance: enum {
             none,
@@ -1207,7 +1207,7 @@ pub const GenericParameterAttributes = struct {
     }
 };
 
-pub const PInvokeAttributes = struct {
+pub const PInvokeAttributesData = struct {
     pub const Type = struct {
         no_mangle: bool,
         char_set: enum {
@@ -1268,7 +1268,7 @@ pub const PInvokeAttributes = struct {
     }
 };
 
-pub const ManifestResourceAttributes = struct {
+pub const ManifestResourceAttributesData = struct {
     pub const Type = struct {
         visibility: enum {
             public,
@@ -1294,7 +1294,7 @@ pub const ManifestResourceAttributes = struct {
     }
 };
 
-pub const MethodAttributes = struct {
+pub const MethodAttributesData = struct {
     pub const Type = struct {
         member_access: enum {
             private_scope,
@@ -1382,7 +1382,7 @@ pub const MethodAttributes = struct {
     }
 };
 
-pub const MethodImplAttributes = struct {
+pub const MethodImplAttributesData = struct {
     pub const Type = struct {
         code_type: enum {
             il,
@@ -1451,7 +1451,7 @@ pub const MethodImplAttributes = struct {
     }
 };
 
-pub const MethodSemanticsAttributes = struct {
+pub const MethodSemanticsAttributesData = struct {
     pub const Type = struct {
         setter: bool,
         getter: bool,
@@ -1483,7 +1483,7 @@ pub const MethodSemanticsAttributes = struct {
     }
 };
 
-pub const ParameterAttributes = struct {
+pub const ParameterAttributesData = struct {
     pub const Type = struct {
         in: bool,
         out: bool,
@@ -1519,7 +1519,7 @@ pub const ParameterAttributes = struct {
     }
 };
 
-pub const PropertyAttributes = struct {
+pub const PropertyAttributesData = struct {
     pub const Type = struct {
         special_name: bool,
         rt_special_name: bool,
@@ -1544,7 +1544,7 @@ pub const PropertyAttributes = struct {
     }
 };
 
-pub const TypeAttributes = struct {
+pub const TypeAttributesData = struct {
     pub const Type = struct {
         visibility: enum {
             not_public,
