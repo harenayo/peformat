@@ -40,4 +40,19 @@ pub fn build(b: *std.Build) !void {
     const test_run = b.addRunArtifact(test_compile);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&test_run.step);
+
+    const docs_compile = b.addLibrary(.{
+        .name = name,
+        .root_module = module,
+    });
+
+    const docs_install = b.addInstallDirectory(.{
+        .source_dir = docs_compile.getEmittedDocs(),
+        .install_dir = .prefix,
+        .install_subdir = "docs",
+    });
+
+    docs_install.step.dependOn(&docs_compile.step);
+    const docs_step = b.step("docs", "Generate a document");
+    docs_step.dependOn(&docs_install.step);
 }
