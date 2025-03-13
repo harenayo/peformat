@@ -153,10 +153,10 @@ pub const ModuleColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(ModuleColumn, type, null) = .{
         .generation = IntData(2),
-        .name = IndexData(.{ .heap = .string }),
-        .mvid = IndexData(.{ .heap = .guid }),
-        .enc_id = IndexData(.{ .heap = .guid }),
-        .enc_base_id = IndexData(.{ .heap = .guid }),
+        .name = HeapIndexData(.string),
+        .mvid = HeapIndexData(.guid),
+        .enc_id = HeapIndexData(.guid),
+        .enc_base_id = HeapIndexData(.guid),
     };
 };
 
@@ -167,8 +167,8 @@ pub const TypeRefColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(TypeRefColumn, type, null) = .{
         .resolution_scope = CodedIndexData(.resolution_scope),
-        .type_name = IndexData(.{ .heap = .string }),
-        .type_namespace = IndexData(.{ .heap = .string }),
+        .type_name = HeapIndexData(.string),
+        .type_namespace = HeapIndexData(.string),
     };
 };
 
@@ -181,12 +181,12 @@ pub const TypeDefColumn = enum {
     method_list,
 
     const properties: std.enums.EnumFieldStruct(TypeDefColumn, type, null) = .{
-        .flags = IntData(4),
-        .type_name = IndexData(.{ .heap = .string }),
-        .type_namespace = IndexData(.{ .heap = .string }),
+        .flags = TypeAttributes,
+        .type_name = HeapIndexData(.string),
+        .type_namespace = HeapIndexData(.string),
         .extends = CodedIndexData(.type_def_or_ref),
-        .field_list = IndexData(.{ .table = .field }),
-        .method_list = IndexData(.{ .table = .method_def }),
+        .field_list = TableIndexData(.field),
+        .method_list = TableIndexData(.method_def),
     };
 };
 
@@ -196,9 +196,9 @@ pub const FieldColumn = enum {
     signature,
 
     const properties: std.enums.EnumFieldStruct(FieldColumn, type, null) = .{
-        .flags = IntData(2),
-        .name = IndexData(.{ .heap = .string }),
-        .signature = IndexData(.{ .heap = .blob }),
+        .flags = FieldAttributes,
+        .name = HeapIndexData(.string),
+        .signature = HeapIndexData(.blob),
     };
 };
 
@@ -212,11 +212,11 @@ pub const MethodDefColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(MethodDefColumn, type, null) = .{
         .rva = IntData(4),
-        .impl_flags = IntData(2),
-        .flags = IntData(2),
-        .name = IndexData(.{ .heap = .string }),
-        .signature = IndexData(.{ .heap = .blob }),
-        .param_list = IndexData(.{ .table = .param }),
+        .impl_flags = MethodImplAttributes,
+        .flags = MethodAttributes,
+        .name = HeapIndexData(.string),
+        .signature = HeapIndexData(.blob),
+        .param_list = TableIndexData(.param),
     };
 };
 
@@ -226,9 +226,9 @@ pub const ParamColumn = enum {
     name,
 
     const properties: std.enums.EnumFieldStruct(ParamColumn, type, null) = .{
-        .flags = IntData(2),
+        .flags = ParameterAttributes,
         .sequence = IntData(2),
-        .name = IndexData(.{ .heap = .string }),
+        .name = HeapIndexData(.string),
     };
 };
 
@@ -237,7 +237,7 @@ pub const InterfaceImplColumn = enum {
     interface,
 
     const properties: std.enums.EnumFieldStruct(InterfaceImplColumn, type, null) = .{
-        .class = IndexData(.{ .table = .type_def }),
+        .class = TableIndexData(.type_def),
         .interface = CodedIndexData(.type_def_or_ref),
     };
 };
@@ -249,8 +249,8 @@ pub const MemberRefColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(MemberRefColumn, type, null) = .{
         .class = CodedIndexData(.member_ref_parent),
-        .name = IndexData(.{ .heap = .string }),
-        .signature = IndexData(.{ .heap = .blob }),
+        .name = HeapIndexData(.string),
+        .signature = HeapIndexData(.blob),
     };
 };
 
@@ -262,7 +262,7 @@ pub const ConstantColumn = enum {
     const properties: std.enums.EnumFieldStruct(ConstantColumn, type, null) = .{
         .type = IntData(2),
         .parent = CodedIndexData(.has_constant),
-        .value = IndexData(.{ .heap = .blob }),
+        .value = HeapIndexData(.blob),
     };
 };
 
@@ -274,7 +274,7 @@ pub const CustomAttributeColumn = enum {
     const properties: std.enums.EnumFieldStruct(CustomAttributeColumn, type, null) = .{
         .parent = CodedIndexData(.has_custom_attribute),
         .type = CodedIndexData(.custom_attribute_type),
-        .value = IndexData(.{ .heap = .blob }),
+        .value = HeapIndexData(.blob),
     };
 };
 
@@ -284,7 +284,7 @@ pub const FieldMarshalColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(FieldMarshalColumn, type, null) = .{
         .parent = CodedIndexData(.has_field_marshal),
-        .native_type = IndexData(.{ .heap = .blob }),
+        .native_type = HeapIndexData(.blob),
     };
 };
 
@@ -296,7 +296,7 @@ pub const DeclSecurityColumn = enum {
     const properties: std.enums.EnumFieldStruct(DeclSecurityColumn, type, null) = .{
         .action = IntData(2),
         .parent = CodedIndexData(.has_decl_security),
-        .permission_set = IndexData(.{ .heap = .blob }),
+        .permission_set = HeapIndexData(.blob),
     };
 };
 
@@ -308,7 +308,7 @@ pub const ClassLayoutColumn = enum {
     const properties: std.enums.EnumFieldStruct(ClassLayoutColumn, type, null) = .{
         .packing_size = IntData(2),
         .class_size = IntData(4),
-        .parent = IndexData(.{ .table = .type_def }),
+        .parent = TableIndexData(.type_def),
     };
 };
 
@@ -318,7 +318,7 @@ pub const FieldLayoutColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(FieldLayoutColumn, type, null) = .{
         .offset = IntData(4),
-        .field = IndexData(.{ .table = .field }),
+        .field = TableIndexData(.field),
     };
 };
 
@@ -326,7 +326,7 @@ pub const StandAloneSigColumn = enum {
     signature,
 
     const properties: std.enums.EnumFieldStruct(StandAloneSigColumn, type, null) = .{
-        .signature = IndexData(.{ .heap = .blob }),
+        .signature = HeapIndexData(.blob),
     };
 };
 
@@ -335,8 +335,8 @@ pub const EventMapColumn = enum {
     event_list,
 
     const properties: std.enums.EnumFieldStruct(EventMapColumn, type, null) = .{
-        .parent = IndexData(.{ .table = .type_def }),
-        .event_list = IndexData(.{ .table = .event }),
+        .parent = TableIndexData(.type_def),
+        .event_list = TableIndexData(.event),
     };
 };
 
@@ -346,8 +346,8 @@ pub const EventColumn = enum {
     event_type,
 
     const properties: std.enums.EnumFieldStruct(EventColumn, type, null) = .{
-        .event_flags = IntData(2),
-        .name = IndexData(.{ .heap = .string }),
+        .event_flags = EventAttributes,
+        .name = HeapIndexData(.string),
         .event_type = CodedIndexData(.type_def_or_ref),
     };
 };
@@ -357,8 +357,8 @@ pub const PropertyMapColumn = enum {
     property_list,
 
     const properties: std.enums.EnumFieldStruct(PropertyMapColumn, type, null) = .{
-        .parent = IndexData(.{ .table = .type_def }),
-        .property_list = IndexData(.{ .table = .property }),
+        .parent = TableIndexData(.type_def),
+        .property_list = TableIndexData(.property),
     };
 };
 
@@ -368,9 +368,9 @@ pub const PropertyColumn = enum {
     type,
 
     const properties: std.enums.EnumFieldStruct(PropertyColumn, type, null) = .{
-        .flags = IntData(2),
-        .name = IndexData(.{ .heap = .string }),
-        .type = IndexData(.{ .heap = .blob }),
+        .flags = PropertyAttributes,
+        .name = HeapIndexData(.string),
+        .type = HeapIndexData(.blob),
     };
 };
 
@@ -380,8 +380,8 @@ pub const MethodSemanticsColumn = enum {
     association,
 
     const properties: std.enums.EnumFieldStruct(MethodSemanticsColumn, type, null) = .{
-        .semantics = IntData(2),
-        .method = IndexData(.{ .table = .method_def }),
+        .semantics = MethodSemanticsAttributes,
+        .method = TableIndexData(.method_def),
         .association = CodedIndexData(.has_semantics),
     };
 };
@@ -392,7 +392,7 @@ pub const MethodImplColumn = enum {
     method_declaration,
 
     const properties: std.enums.EnumFieldStruct(MethodImplColumn, type, null) = .{
-        .class = IndexData(.{ .table = .type_def }),
+        .class = TableIndexData(.type_def),
         .method_body = CodedIndexData(.method_def_or_ref),
         .method_declaration = CodedIndexData(.method_def_or_ref),
     };
@@ -402,7 +402,7 @@ pub const ModuleRefColumn = enum {
     name,
 
     const properties: std.enums.EnumFieldStruct(ModuleRefColumn, type, null) = .{
-        .name = IndexData(.{ .heap = .string }),
+        .name = HeapIndexData(.string),
     };
 };
 
@@ -410,7 +410,7 @@ pub const TypeSpecColumn = enum {
     signature,
 
     const properties: std.enums.EnumFieldStruct(TypeSpecColumn, type, null) = .{
-        .signature = IndexData(.{ .heap = .blob }),
+        .signature = HeapIndexData(.blob),
     };
 };
 
@@ -421,10 +421,10 @@ pub const ImplMapColumn = enum {
     import_scope,
 
     const properties: std.enums.EnumFieldStruct(ImplMapColumn, type, null) = .{
-        .mapping_flags = IntData(2),
+        .mapping_flags = PInvokeAttributes,
         .member_forwarded = CodedIndexData(.member_forwarded),
-        .import_name = IndexData(.{ .heap = .string }),
-        .import_scope = IndexData(.{ .table = .module_ref }),
+        .import_name = HeapIndexData(.string),
+        .import_scope = TableIndexData(.module_ref),
     };
 };
 
@@ -434,7 +434,7 @@ pub const FieldRvaColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(FieldRvaColumn, type, null) = .{
         .rva = IntData(4),
-        .field = IndexData(.{ .table = .field }),
+        .field = TableIndexData(.field),
     };
 };
 
@@ -447,12 +447,12 @@ pub const AssemblyColumn = enum {
     culture,
 
     const properties: std.enums.EnumFieldStruct(AssemblyColumn, type, null) = .{
-        .hash_alg_id = IntData(4),
-        .versions = IntData(8),
-        .flags = IntData(4),
-        .public_key = IndexData(.{ .heap = .blob }),
-        .name = IndexData(.{ .heap = .string }),
-        .culture = IndexData(.{ .heap = .string }),
+        .hash_alg_id = AssemblyHashAlgorithm,
+        .versions = VersionsData,
+        .flags = AssemblyFlags,
+        .public_key = HeapIndexData(.blob),
+        .name = HeapIndexData(.string),
+        .culture = HeapIndexData(.string),
     };
 };
 
@@ -485,12 +485,12 @@ pub const AssemblyRefColumn = enum {
     hash_value,
 
     const properties: std.enums.EnumFieldStruct(AssemblyRefColumn, type, null) = .{
-        .versions = IntData(8),
-        .flags = IntData(4),
-        .public_key_or_token = IndexData(.{ .heap = .blob }),
-        .name = IndexData(.{ .heap = .string }),
-        .culture = IndexData(.{ .heap = .string }),
-        .hash_value = IndexData(.{ .heap = .blob }),
+        .versions = VersionsData,
+        .flags = AssemblyFlags,
+        .public_key_or_token = HeapIndexData(.blob),
+        .name = HeapIndexData(.string),
+        .culture = HeapIndexData(.string),
+        .hash_value = HeapIndexData(.blob),
     };
 };
 
@@ -500,7 +500,7 @@ pub const AssemblyRefProcessorColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(AssemblyRefProcessorColumn, type, null) = .{
         .processor = IntData(4),
-        .assembly_ref = IndexData(.{ .table = .assembly_ref }),
+        .assembly_ref = TableIndexData(.assembly_ref),
     };
 };
 
@@ -514,7 +514,7 @@ pub const AssemblyRefOsColumn = enum {
         .os_platform_id = IntData(4),
         .os_major_version = IntData(4),
         .os_minor_version = IntData(4),
-        .assembly_ref = IndexData(.{ .table = .assembly_ref }),
+        .assembly_ref = TableIndexData(.assembly_ref),
     };
 };
 
@@ -524,9 +524,9 @@ pub const FileColumn = enum {
     hash_value,
 
     const properties: std.enums.EnumFieldStruct(FileColumn, type, null) = .{
-        .flags = IntData(4),
-        .name = IndexData(.{ .heap = .string }),
-        .hash_value = IndexData(.{ .heap = .blob }),
+        .flags = FileAttributes,
+        .name = HeapIndexData(.string),
+        .hash_value = HeapIndexData(.blob),
     };
 };
 
@@ -538,10 +538,10 @@ pub const ExportedTypeColumn = enum {
     implementation,
 
     const properties: std.enums.EnumFieldStruct(ExportedTypeColumn, type, null) = .{
-        .flags = IntData(4),
+        .flags = TypeAttributes,
         .type_def_id = IntData(4),
-        .type_name = IndexData(.{ .heap = .string }),
-        .type_namespace = IndexData(.{ .heap = .string }),
+        .type_name = HeapIndexData(.string),
+        .type_namespace = HeapIndexData(.string),
         .implementation = CodedIndexData(.implementation),
     };
 };
@@ -554,8 +554,8 @@ pub const ManifestResourceColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(ManifestResourceColumn, type, null) = .{
         .offset = IntData(4),
-        .flags = IntData(4),
-        .name = IndexData(.{ .heap = .string }),
+        .flags = ManifestResourceAttributes,
+        .name = HeapIndexData(.string),
         .implementation = CodedIndexData(.implementation),
     };
 };
@@ -565,8 +565,8 @@ pub const NestedClassColumn = enum {
     enclosing_class,
 
     const properties: std.enums.EnumFieldStruct(NestedClassColumn, type, null) = .{
-        .nested_class = IndexData(.{ .table = .type_def }),
-        .enclosing_class = IndexData(.{ .table = .type_def }),
+        .nested_class = TableIndexData(.type_def),
+        .enclosing_class = TableIndexData(.type_def),
     };
 };
 
@@ -578,9 +578,9 @@ pub const GenericParamColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(GenericParamColumn, type, null) = .{
         .number = IntData(2),
-        .flags = IntData(2),
+        .flags = GenericParameterAttributes,
         .owner = CodedIndexData(.type_or_method_def),
-        .name = IndexData(.{ .heap = .string }),
+        .name = HeapIndexData(.string),
     };
 };
 
@@ -590,7 +590,7 @@ pub const MethodSpecColumn = enum {
 
     const properties: std.enums.EnumFieldStruct(MethodSpecColumn, type, null) = .{
         .method = CodedIndexData(.method_def_or_ref),
-        .instantiation = IndexData(.{ .heap = .blob }),
+        .instantiation = HeapIndexData(.blob),
     };
 };
 
@@ -599,7 +599,7 @@ pub const GenericParamConstraintColumn = enum {
     constraint,
 
     const properties: std.enums.EnumFieldStruct(GenericParamConstraintColumn, type, null) = .{
-        .owner = IndexData(.{ .table = .generic_param }),
+        .owner = TableIndexData(.generic_param),
         .constraint = CodedIndexData(.type_def_or_ref),
     };
 };
@@ -789,7 +789,7 @@ pub const IndexSize = enum {
 
 pub fn IntData(bytes: u16) type {
     return struct {
-        const Type = @Type(.{ .int = .{
+        pub const Type = @Type(.{ .int = .{
             .signedness = .unsigned,
             .bits = 8 * bytes,
         } });
@@ -803,7 +803,7 @@ pub fn IntData(bytes: u16) type {
 
 pub fn IndexData(index: IndexKind) type {
     return struct {
-        const Type = u32;
+        pub const Type = u32;
 
         pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
             return switch (sizes.get(index)) {
@@ -814,11 +814,46 @@ pub fn IndexData(index: IndexKind) type {
     };
 }
 
+pub fn SimpleIndexData(index: IndexKind) type {
+    return struct {
+        pub const Type = ?u32;
+
+        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+            const optional_index = try IndexData(index).read(stream, sizes);
+
+            return switch (optional_index) {
+                0 => null,
+                else => optional_index - 1,
+            };
+        }
+    };
+}
+
+pub fn HeapIndexData(heap: Heap) type {
+    return struct {
+        pub const Type = ?u32;
+
+        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+            return try SimpleIndexData(.{ .heap = heap }).read(stream, sizes);
+        }
+    };
+}
+
+pub fn TableIndexData(table: Table) type {
+    return struct {
+        pub const Type = ?u32;
+
+        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+            return try SimpleIndexData(.{ .table = table }).read(stream, sizes);
+        }
+    };
+}
+
 pub fn CodedIndexData(target: CodedIndexKind) type {
     return struct {
-        const Type = struct {
+        pub const Type = struct {
             table: target.Tag(),
-            index: u32,
+            index: ?u32,
         };
 
         pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
@@ -826,7 +861,12 @@ pub fn CodedIndexData(target: CodedIndexKind) type {
             var tag_mask: u32 = 0;
             for (0..target.tagBits()) |i| tag_mask |= @as(u32, 1) << @intCast(i);
             const table = try std.meta.intToEnum(target.Tag(), raw_value & tag_mask);
-            const index = raw_value >> @intCast(target.tagBits());
+            const optional_index = raw_value >> @intCast(target.tagBits());
+
+            const index = switch (optional_index) {
+                0 => null,
+                else => optional_index - 1,
+            };
 
             return .{
                 .table = table,
@@ -835,6 +875,800 @@ pub fn CodedIndexData(target: CodedIndexKind) type {
         }
     };
 }
+
+pub const VersionsData = struct {
+    pub const Type = struct {
+        major_version: u16,
+        minor_version: u16,
+        build_number: u16,
+        revision_number: u16,
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        return .{
+            .major_version = try IntData(2).read(stream, sizes),
+            .minor_version = try IntData(2).read(stream, sizes),
+            .build_number = try IntData(2).read(stream, sizes),
+            .revision_number = try IntData(2).read(stream, sizes),
+        };
+    }
+};
+
+pub fn PackedData(T: type) type {
+    return struct {
+        pub const Type = T;
+
+        pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+            const t_info = @typeInfo(T).@"struct";
+            const Int = t_info.backing_integer.?;
+            const t_fields = t_info.fields;
+            comptime var u_fields: [t_fields.len]std.builtin.Type.StructField = undefined;
+
+            inline for (&u_fields, t_fields) |*u_field, t_field| {
+                u_field.* = .{
+                    .name = t_field.name,
+                    .type = @typeInfo(t_field.type).@"enum".tag_type,
+                    .default_value_ptr = null,
+                    .is_comptime = false,
+                    .alignment = t_field.alignment,
+                };
+            }
+
+            const u_info: std.builtin.Type = comptime .{ .@"struct" = .{
+                .layout = .@"packed",
+                .backing_integer = Int,
+                .fields = &u_fields,
+                .decls = &.{},
+                .is_tuple = false,
+            } };
+
+            const U = @Type(u_info);
+            const int_value = try IntData(@typeInfo(Int).int.bits / 8).read(stream, sizes);
+            const u_value: U = @bitCast(int_value);
+            var t_value: T = undefined;
+
+            inline for (t_fields) |t_field| {
+                @field(t_value, t_field.name) = try std.meta.intToEnum(t_field.type, @field(u_value, t_field.name));
+            }
+
+            return t_value;
+        }
+    };
+}
+
+pub fn PackedPadding(Int: type) type {
+    return enum(Int) {
+        padding = 0,
+    };
+}
+
+pub fn PackedBool(Int: type) type {
+    return enum(Int) {
+        false = 0,
+        true = 1,
+
+        pub fn toBool(packed_bool: PackedBool(Int)) bool {
+            return switch (packed_bool) {
+                .false => false,
+                .true => true,
+            };
+        }
+    };
+}
+
+pub fn PackedInt(Int: type) type {
+    return enum(Int) {
+        _,
+
+        pub fn toInt(packed_int: PackedInt(Int)) Int {
+            return @intFromEnum(packed_int);
+        }
+    };
+}
+
+pub const AssemblyHashAlgorithm = struct {
+    pub const Type = enum {
+        none,
+        md5,
+        sha1,
+        sha256,
+        sha384,
+        sha512,
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        const raw_value = try PackedData(packed struct(u32) {
+            value: enum(u32) {
+                None = 0,
+                MD5 = 32771,
+                Sha1 = 32772,
+                Sha256 = 32780,
+                Sha384 = 32781,
+                Sha512 = 32782,
+            },
+        }).read(stream, sizes);
+
+        return switch (raw_value.value) {
+            .None => .none,
+            .MD5 => .md5,
+            .Sha1 => .sha1,
+            .Sha256 => .sha256,
+            .Sha384 => .sha384,
+            .Sha512 => .sha512,
+        };
+    }
+};
+
+pub const AssemblyFlags = struct {
+    pub const Type = struct {
+        public_key: bool,
+        retargetable: bool,
+        content_type: enum {
+            default,
+            windows_runtime,
+        },
+        disable_jit_compile_optimizer: bool,
+        enable_jit_compile_tracking: bool,
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        const raw_value = try PackedData(packed struct(u32) {
+            PublicKey: PackedBool(u1),
+            padding0: PackedPadding(u7),
+            Retargetable: PackedBool(u1),
+            ContentType: enum(u3) {
+                Default = 0,
+                WindowsRuntime = 1,
+            },
+            padding1: PackedPadding(u2),
+            DisableJitCompileOptimizer: PackedBool(u1),
+            EnableJitCompileTracking: PackedBool(u1),
+            padding2: PackedPadding(u16),
+        }).read(stream, sizes);
+
+        return .{
+            .public_key = raw_value.PublicKey.toBool(),
+            .retargetable = raw_value.Retargetable.toBool(),
+            .content_type = switch (raw_value.ContentType) {
+                .Default => .default,
+                .WindowsRuntime => .windows_runtime,
+            },
+            .disable_jit_compile_optimizer = raw_value.DisableJitCompileOptimizer.toBool(),
+            .enable_jit_compile_tracking = raw_value.EnableJitCompileTracking.toBool(),
+        };
+    }
+};
+
+pub const EventAttributes = struct {
+    pub const Type = struct {
+        special_name: bool,
+        rt_special_name: bool,
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        const raw_value = try PackedData(packed struct(u16) {
+            padding0: PackedPadding(u9),
+            SpecialName: PackedBool(u1),
+            RTSpecialName: PackedBool(u1),
+            padding1: PackedPadding(u5),
+        }).read(stream, sizes);
+
+        return .{
+            .special_name = switch (raw_value.SpecialName) {
+                .false => false,
+                .true => true,
+            },
+            .rt_special_name = switch (raw_value.RTSpecialName) {
+                .false => false,
+                .true => true,
+            },
+        };
+    }
+};
+
+pub const FieldAttributes = struct {
+    pub const Type = struct {
+        field_access: enum {
+            private_scope,
+            private,
+            fam_and_assem,
+            assembly,
+            family,
+            fam_or_assem,
+            public,
+        },
+        static: bool,
+        init_only: bool,
+        literal: bool,
+        not_serialized: bool,
+        has_field_rva: bool,
+        special_name: bool,
+        rt_special_name: bool,
+        has_field_marshal: bool,
+        pinvoke_impl: bool,
+        has_default: bool,
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        const raw_value = try PackedData(packed struct(u16) {
+            FieldAccess: enum(u3) {
+                PrivateScope = 0,
+                Private = 1,
+                FamANDAssem = 2,
+                Assembly = 3,
+                Family = 4,
+                FamORAssem = 5,
+                Public = 6,
+            },
+            padding0: PackedPadding(u1),
+            Static: PackedBool(u1),
+            InitOnly: PackedBool(u1),
+            Literal: PackedBool(u1),
+            NotSerialized: PackedBool(u1),
+            HasFieldRVA: PackedBool(u1),
+            SpecialName: PackedBool(u1),
+            RTSpecialName: PackedBool(u1),
+            padding1: PackedPadding(u1),
+            HasFieldMarshal: PackedBool(u1),
+            PinvokeImpl: PackedBool(u1),
+            padding2: PackedPadding(u1),
+            HasDefault: PackedBool(u1),
+        }).read(stream, sizes);
+
+        return .{
+            .field_access = switch (raw_value.FieldAccess) {
+                .PrivateScope => .private_scope,
+                .Private => .private,
+                .FamANDAssem => .fam_and_assem,
+                .Assembly => .assembly,
+                .Family => .family,
+                .FamORAssem => .fam_or_assem,
+                .Public => .public,
+            },
+            .static = raw_value.Static.toBool(),
+            .init_only = raw_value.InitOnly.toBool(),
+            .literal = raw_value.Literal.toBool(),
+            .not_serialized = raw_value.NotSerialized.toBool(),
+            .has_field_rva = raw_value.HasFieldRVA.toBool(),
+            .special_name = raw_value.SpecialName.toBool(),
+            .rt_special_name = raw_value.RTSpecialName.toBool(),
+            .has_field_marshal = raw_value.HasFieldMarshal.toBool(),
+            .pinvoke_impl = raw_value.PinvokeImpl.toBool(),
+            .has_default = raw_value.HasDefault.toBool(),
+        };
+    }
+};
+
+pub const FileAttributes = struct {
+    pub const Type = enum {
+        contains_meta_data,
+        contains_no_meta_data,
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        const raw_value = try PackedData(packed struct(u32) {
+            value: enum(u32) {
+                ContainsMetaData = 0,
+                ContainsNoMetaData = 1,
+            },
+        }).read(stream, sizes);
+
+        return switch (raw_value.value) {
+            .ContainsMetaData => .contains_meta_data,
+            .ContainsNoMetaData => .contains_no_meta_data,
+        };
+    }
+};
+
+pub const GenericParameterAttributes = struct {
+    pub const Type = struct {
+        variance: enum {
+            none,
+            covariant,
+            contravariant,
+        },
+        special_constraint: enum {
+            reference_type_constraint,
+            not_nullable_value_type_constraint,
+            default_constructor_constraint,
+        },
+        allow_by_ref_like: bool,
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        const raw_value = try PackedData(packed struct(u16) {
+            Variance: enum(u3) {
+                None = 0,
+                Covariant = 1,
+                Contravariant = 2,
+            },
+            SpecialConstraint: enum(u3) {
+                ReferenceTypeConstraint = 1,
+                NotNullableValueTypeConstraint = 2,
+                DefaultConstructorConstraint = 4,
+            },
+            AllowByRefLike: PackedBool(u1),
+            padding0: PackedPadding(u9),
+        }).read(stream, sizes);
+
+        return .{
+            .variance = switch (raw_value.Variance) {
+                .None => .none,
+                .Covariant => .covariant,
+                .Contravariant => .contravariant,
+            },
+            .special_constraint = switch (raw_value.SpecialConstraint) {
+                .ReferenceTypeConstraint => .reference_type_constraint,
+                .NotNullableValueTypeConstraint => .not_nullable_value_type_constraint,
+                .DefaultConstructorConstraint => .default_constructor_constraint,
+            },
+            .allow_by_ref_like = raw_value.AllowByRefLike.toBool(),
+        };
+    }
+};
+
+pub const PInvokeAttributes = struct {
+    pub const Type = struct {
+        no_mangle: bool,
+        char_set: enum {
+            char_set_not_spec,
+            char_set_ansi,
+            char_set_unicode,
+            char_set_auto,
+        },
+        supports_last_error: bool,
+        call_conv: enum {
+            call_conv_platformapi,
+            call_conv_cdecl,
+            call_conv_stdcall,
+            call_conv_thiscall,
+            call_conv_fastcall,
+        },
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        const raw_value = try PackedData(packed struct(u16) {
+            NoMangle: PackedBool(u1),
+            CharSet: enum(u2) {
+                CharSetNotSpec = 0,
+                CharSetAnsi = 1,
+                CharSetUnicode = 2,
+                CharSetAuto = 3,
+            },
+            padding0: PackedPadding(u3),
+            SupportsLastError: PackedBool(u1),
+            padding1: PackedPadding(u1),
+            CallConv: enum(u3) {
+                CallConvPlatformapi = 1,
+                CallConvCdecl = 2,
+                CallConvStdcall = 3,
+                CallConvThiscall = 4,
+                CallConvFastcall = 5,
+            },
+            padding2: PackedPadding(u5),
+        }).read(stream, sizes);
+
+        return .{
+            .no_mangle = raw_value.NoMangle.toBool(),
+            .char_set = switch (raw_value.CharSet) {
+                .CharSetNotSpec => .char_set_not_spec,
+                .CharSetAnsi => .char_set_ansi,
+                .CharSetUnicode => .char_set_unicode,
+                .CharSetAuto => .char_set_auto,
+            },
+            .supports_last_error = raw_value.SupportsLastError.toBool(),
+            .call_conv = switch (raw_value.CallConv) {
+                .CallConvPlatformapi => .call_conv_platformapi,
+                .CallConvCdecl => .call_conv_cdecl,
+                .CallConvStdcall => .call_conv_stdcall,
+                .CallConvThiscall => .call_conv_thiscall,
+                .CallConvFastcall => .call_conv_fastcall,
+            },
+        };
+    }
+};
+
+pub const ManifestResourceAttributes = struct {
+    pub const Type = struct {
+        visibility: enum {
+            public,
+            private,
+        },
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        const raw_value = try PackedData(packed struct(u32) {
+            Visibility: enum(u3) {
+                Public = 1,
+                Private = 2,
+            },
+            padding0: PackedPadding(u29),
+        }).read(stream, sizes);
+
+        return .{
+            .visibility = switch (raw_value.Visibility) {
+                .Public => .public,
+                .Private => .private,
+            },
+        };
+    }
+};
+
+pub const MethodAttributes = struct {
+    pub const Type = struct {
+        member_access: enum {
+            private_scope,
+            private,
+            fam_and_assem,
+            assembly,
+            family,
+            fam_or_assem,
+            public,
+        },
+        unmanaged_export: bool,
+        static: bool,
+        final: bool,
+        virtual: bool,
+        hide_by_sig: bool,
+        vtable_layout: enum {
+            reuse_slot,
+            new_slot,
+        },
+        check_access_on_override: bool,
+        abstract: bool,
+        special_name: bool,
+        rt_special_name: bool,
+        pinvoke_impl: bool,
+        has_security: bool,
+        require_sec_object: bool,
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        const raw_value = try PackedData(packed struct(u16) {
+            MemberAccess: enum(u3) {
+                PrivateScope = 0,
+                Private = 1,
+                FamANDAssem = 2,
+                Assembly = 3,
+                Family = 4,
+                FamORAssem = 5,
+                Public = 6,
+            },
+            UnmanagedExport: PackedBool(u1),
+            Static: PackedBool(u1),
+            Final: PackedBool(u1),
+            Virtual: PackedBool(u1),
+            HideBySig: PackedBool(u1),
+            VtableLayout: enum(u1) {
+                ReuseSlot = 0,
+                NewSlot = 1,
+            },
+            CheckAccessOnOverride: PackedBool(u1),
+            Abstract: PackedBool(u1),
+            SpecialName: PackedBool(u1),
+            RTSpecialName: PackedBool(u1),
+            PinvokeImpl: PackedBool(u1),
+            HasSecurity: PackedBool(u1),
+            RequireSecObject: PackedBool(u1),
+        }).read(stream, sizes);
+
+        return .{
+            .member_access = switch (raw_value.MemberAccess) {
+                .PrivateScope => .private_scope,
+                .Private => .private,
+                .FamANDAssem => .fam_and_assem,
+                .Assembly => .assembly,
+                .Family => .family,
+                .FamORAssem => .fam_or_assem,
+                .Public => .public,
+            },
+            .unmanaged_export = raw_value.UnmanagedExport.toBool(),
+            .static = raw_value.Static.toBool(),
+            .final = raw_value.Final.toBool(),
+            .virtual = raw_value.Virtual.toBool(),
+            .hide_by_sig = raw_value.HideBySig.toBool(),
+            .vtable_layout = switch (raw_value.VtableLayout) {
+                .ReuseSlot => .reuse_slot,
+                .NewSlot => .new_slot,
+            },
+            .check_access_on_override = raw_value.CheckAccessOnOverride.toBool(),
+            .abstract = raw_value.Abstract.toBool(),
+            .special_name = raw_value.SpecialName.toBool(),
+            .rt_special_name = raw_value.RTSpecialName.toBool(),
+            .pinvoke_impl = raw_value.PinvokeImpl.toBool(),
+            .has_security = raw_value.HasSecurity.toBool(),
+            .require_sec_object = raw_value.RequireSecObject.toBool(),
+        };
+    }
+};
+
+pub const MethodImplAttributes = struct {
+    pub const Type = struct {
+        code_type: enum {
+            il,
+            native,
+            optil,
+            runtime,
+        },
+        managed: enum {
+            managed,
+            unmanaged,
+        },
+        no_inlining: bool,
+        forward_ref: bool,
+        synchronized: bool,
+        no_optimization: bool,
+        preserve_sig: bool,
+        aggressive_inlining: bool,
+        aggressive_optimization: bool,
+        internal_call: bool,
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        const raw_value = try PackedData(packed struct(u16) {
+            CodeType: enum(u2) {
+                IL = 0,
+                Native = 1,
+                OPTIL = 2,
+                Runtime = 3,
+            },
+            Managed: enum(u1) {
+                Managed = 0,
+                Unmanaged = 1,
+            },
+            NoInlining: PackedBool(u1),
+            ForwardRef: PackedBool(u1),
+            Synchronized: PackedBool(u1),
+            NoOptimization: PackedBool(u1),
+            PreserveSig: PackedBool(u1),
+            AggressiveInlining: PackedBool(u1),
+            AggressiveOptimization: PackedBool(u1),
+            padding0: PackedPadding(u2),
+            InternalCall: PackedBool(u1),
+            padding1: PackedPadding(u3),
+        }).read(stream, sizes);
+
+        return .{
+            .code_type = switch (raw_value.CodeType) {
+                .IL => .il,
+                .Native => .native,
+                .OPTIL => .optil,
+                .Runtime => .runtime,
+            },
+            .managed = switch (raw_value.Managed) {
+                .Managed => .managed,
+                .Unmanaged => .unmanaged,
+            },
+            .no_inlining = raw_value.NoInlining.toBool(),
+            .forward_ref = raw_value.ForwardRef.toBool(),
+            .synchronized = raw_value.Synchronized.toBool(),
+            .no_optimization = raw_value.NoOptimization.toBool(),
+            .preserve_sig = raw_value.PreserveSig.toBool(),
+            .aggressive_inlining = raw_value.AggressiveInlining.toBool(),
+            .aggressive_optimization = raw_value.AggressiveOptimization.toBool(),
+            .internal_call = raw_value.InternalCall.toBool(),
+        };
+    }
+};
+
+pub const MethodSemanticsAttributes = struct {
+    pub const Type = struct {
+        setter: bool,
+        getter: bool,
+        other: bool,
+        adder: bool,
+        remover: bool,
+        raiser: bool,
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        const raw_value = try PackedData(packed struct(u16) {
+            Setter: PackedBool(u1),
+            Getter: PackedBool(u1),
+            Other: PackedBool(u1),
+            Adder: PackedBool(u1),
+            Remover: PackedBool(u1),
+            Raiser: PackedBool(u1),
+            padding0: PackedPadding(u10),
+        }).read(stream, sizes);
+
+        return .{
+            .setter = raw_value.Setter.toBool(),
+            .getter = raw_value.Getter.toBool(),
+            .other = raw_value.Other.toBool(),
+            .adder = raw_value.Adder.toBool(),
+            .remover = raw_value.Remover.toBool(),
+            .raiser = raw_value.Raiser.toBool(),
+        };
+    }
+};
+
+pub const ParameterAttributes = struct {
+    pub const Type = struct {
+        in: bool,
+        out: bool,
+        lcid: bool,
+        retval: bool,
+        optional: bool,
+        has_default: bool,
+        has_field_marshal: bool,
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        const raw_value = try PackedData(packed struct(u16) {
+            In: PackedBool(u1),
+            Out: PackedBool(u1),
+            Lcid: PackedBool(u1),
+            Retval: PackedBool(u1),
+            Optional: PackedBool(u1),
+            padding0: PackedPadding(u7),
+            HasDefault: PackedBool(u1),
+            HasFieldMarshal: PackedBool(u1),
+            padding1: PackedPadding(u2),
+        }).read(stream, sizes);
+
+        return .{
+            .in = raw_value.In.toBool(),
+            .out = raw_value.Out.toBool(),
+            .lcid = raw_value.Lcid.toBool(),
+            .retval = raw_value.Retval.toBool(),
+            .optional = raw_value.Optional.toBool(),
+            .has_default = raw_value.HasDefault.toBool(),
+            .has_field_marshal = raw_value.HasFieldMarshal.toBool(),
+        };
+    }
+};
+
+pub const PropertyAttributes = struct {
+    pub const Type = struct {
+        special_name: bool,
+        rt_special_name: bool,
+        has_default: bool,
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        const raw_value = try PackedData(packed struct(u16) {
+            padding0: PackedPadding(u9),
+            SpecialName: PackedBool(u1),
+            RTSpecialName: PackedBool(u1),
+            padding1: PackedPadding(u1),
+            HasDefault: PackedBool(u1),
+            padding2: PackedPadding(u3),
+        }).read(stream, sizes);
+
+        return .{
+            .special_name = raw_value.SpecialName.toBool(),
+            .rt_special_name = raw_value.RTSpecialName.toBool(),
+            .has_default = raw_value.HasDefault.toBool(),
+        };
+    }
+};
+
+pub const TypeAttributes = struct {
+    pub const Type = struct {
+        visibility: enum {
+            not_public,
+            public,
+            nested_public,
+            nested_private,
+            nested_family,
+            nested_assembly,
+            nested_fam_and_assem,
+            nested_fam_or_assem,
+        },
+        layout: enum {
+            auto_layout,
+            sequential_layout,
+            explicit_layout,
+        },
+        class_semantics: enum {
+            class,
+            interface,
+        },
+        abstract: bool,
+        sealed: bool,
+        special_name: bool,
+        rt_special_name: bool,
+        import: bool,
+        serializable: bool,
+        windows_runtime: bool,
+        string_format: enum {
+            ansi_class,
+            unicode_class,
+            auto_class,
+            custom_format_class,
+        },
+        has_security: bool,
+        before_field_init: bool,
+        is_type_forwarder: bool,
+        custom_format: u2,
+    };
+
+    pub fn read(stream: *std.io.FixedBufferStream([]const u8), sizes: IndexMap(IndexSize)) !Type {
+        const raw_value = try PackedData(packed struct(u32) {
+            Visibility: enum(u3) {
+                NotPublic = 0,
+                Public = 1,
+                NestedPublic = 2,
+                NestedPrivate = 3,
+                NestedFamily = 4,
+                NestedAssembly = 5,
+                NestedFamANDAssem = 6,
+                NestedFamORAssem = 7,
+            },
+            Layout: enum(u2) {
+                AutoLayout = 0,
+                SequentialLayout = 1,
+                ExplicitLayout = 2,
+            },
+            ClassSemantics: enum(u1) {
+                Class = 0,
+                Interface = 1,
+            },
+            padding0: PackedPadding(u1),
+            Abstract: PackedBool(u1),
+            Sealed: PackedBool(u1),
+            padding1: PackedPadding(u1),
+            SpecialName: PackedBool(u1),
+            RTSpecialName: PackedBool(u1),
+            Import: PackedBool(u1),
+            Serializable: PackedBool(u1),
+            WindowsRuntime: PackedBool(u1),
+            padding2: PackedPadding(u1),
+            StringFormat: enum(u2) {
+                AnsiClass = 0,
+                UnicodeClass = 1,
+                AutoClass = 2,
+                CustomFormatClass = 3,
+            },
+            HasSecurity: PackedBool(u1),
+            padding3: PackedPadding(u1),
+            BeforeFieldInit: PackedBool(u1),
+            IsTypeForwarder: PackedBool(u1),
+            CustomFormat: PackedInt(u2),
+            padding4: PackedPadding(u8),
+        }).read(stream, sizes);
+
+        return .{
+            .visibility = switch (raw_value.Visibility) {
+                .NotPublic => .not_public,
+                .Public => .public,
+                .NestedPublic => .nested_public,
+                .NestedPrivate => .nested_private,
+                .NestedFamily => .nested_family,
+                .NestedAssembly => .nested_assembly,
+                .NestedFamANDAssem => .nested_fam_and_assem,
+                .NestedFamORAssem => .nested_fam_or_assem,
+            },
+            .layout = switch (raw_value.Layout) {
+                .AutoLayout => .auto_layout,
+                .SequentialLayout => .sequential_layout,
+                .ExplicitLayout => .explicit_layout,
+            },
+            .class_semantics = switch (raw_value.ClassSemantics) {
+                .Class => .class,
+                .Interface => .interface,
+            },
+            .abstract = raw_value.Abstract.toBool(),
+            .sealed = raw_value.Sealed.toBool(),
+            .special_name = raw_value.SpecialName.toBool(),
+            .rt_special_name = raw_value.RTSpecialName.toBool(),
+            .import = raw_value.Import.toBool(),
+            .serializable = raw_value.Serializable.toBool(),
+            .windows_runtime = raw_value.WindowsRuntime.toBool(),
+            .string_format = switch (raw_value.StringFormat) {
+                .AnsiClass => .ansi_class,
+                .UnicodeClass => .unicode_class,
+                .AutoClass => .auto_class,
+                .CustomFormatClass => .custom_format_class,
+            },
+            .has_security = raw_value.HasSecurity.toBool(),
+            .before_field_init = raw_value.BeforeFieldInit.toBool(),
+            .is_type_forwarder = raw_value.IsTypeForwarder.toBool(),
+            .custom_format = raw_value.CustomFormat.toInt(),
+        };
+    }
+};
 
 pub const TableStream = struct {
     reserved0: u32,
