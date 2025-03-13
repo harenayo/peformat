@@ -7,7 +7,7 @@ pub const metadata = @import("metadata.zig");
 pub const table = @import("table.zig");
 
 test {
-    const file = try std.fs.openFileAbsolute("C:\\Windows\\System32\\WinMetadata\\Windows.AI.winmd", .{});
+    const file = try std.fs.openFileAbsolute("C:\\Windows\\System32\\WinMetadata\\Windows.UI.winmd", .{});
     defer file.close();
     const pe_bytes = try file.readToEndAlloc(std.testing.allocator, std.math.maxInt(usize));
     defer std.testing.allocator.free(pe_bytes);
@@ -25,7 +25,9 @@ test {
     const tables = try table.TableStream.read(std.testing.allocator, tables_data);
     defer tables.free();
 
-    for (tables.tables.type_def.items) |type_def| {
-        std.debug.print("{}\n", .{type_def});
+    inline for (comptime std.meta.tags(table.Table)) |table_tag| {
+        for (@field(tables.tables, @tagName(table_tag)).items) |rows| {
+            std.debug.print("{}\n", .{rows});
+        }
     }
 }
