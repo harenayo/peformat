@@ -7,7 +7,7 @@ pub const metadata = @import("metadata.zig");
 pub const table = @import("table.zig");
 
 test {
-    const file = try std.fs.openFileAbsolute("C:\\Windows\\System32\\WinMetadata\\Windows.UI.winmd", .{});
+    const file = try std.fs.cwd().openFile("Windows.winmd", .{});
     defer file.close();
     const pe_bytes = try file.readToEndAlloc(std.testing.allocator, std.math.maxInt(usize));
     defer std.testing.allocator.free(pe_bytes);

@@ -1168,6 +1168,7 @@ pub const GenericParameterAttributesData = struct {
             contravariant,
         },
         special_constraint: enum {
+            none,
             reference_type_constraint,
             not_nullable_value_type_constraint,
             default_constructor_constraint,
@@ -1183,6 +1184,7 @@ pub const GenericParameterAttributesData = struct {
                 Contravariant = 2,
             },
             SpecialConstraint: enum(u3) {
+                None = 0,
                 ReferenceTypeConstraint = 1,
                 NotNullableValueTypeConstraint = 2,
                 DefaultConstructorConstraint = 4,
@@ -1198,6 +1200,7 @@ pub const GenericParameterAttributesData = struct {
                 .Contravariant => .contravariant,
             },
             .special_constraint = switch (raw_value.SpecialConstraint) {
+                .None => .none,
                 .ReferenceTypeConstraint => .reference_type_constraint,
                 .NotNullableValueTypeConstraint => .not_nullable_value_type_constraint,
                 .DefaultConstructorConstraint => .default_constructor_constraint,
